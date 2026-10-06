@@ -14,7 +14,7 @@ const MAX_IMAGE_CHARS = 4_000_000; // base64 기준 약 3MB
 const SHAPES = {
   tee: '반팔 티셔츠', long: '긴팔 티셔츠', shirt: '셔츠·블라우스', knit: '니트·스웨터', polo: '카라 니트·폴로', sweat: '맨투맨', hoodie: '후드티', dress: '원피스',
   jeans: '청바지', slacks: '긴바지·슬랙스', shorts: '반바지', skirt: '치마',
-  coat: '코트', jacket: '자켓', blazer: '블레이저', cardigan: '가디건', puffer: '패딩', bomber: '바시티·블루종',
+  coat: '코트', jacket: '자켓', blazer: '블레이저', cardigan: '가디건', shacket: '남방·셔츠 자켓', puffer: '패딩', bomber: '바시티·블루종',
   sneaker: '운동화', loafer: '로퍼·구두', boots: '부츠', sandal: '샌들·슬리퍼',
 };
 
