@@ -298,7 +298,7 @@
   // Every garment the app can draw. A photo becomes one of these.
   const SHAPE_INFO = {
     tee: { cat: 'top', label: '반팔 티셔츠' }, long: { cat: 'top', label: '긴팔 티셔츠' }, shirt: { cat: 'top', label: '셔츠·블라우스' },
-    knit: { cat: 'top', label: '니트·스웨터' }, polo: { cat: 'top', label: '카라 니트·폴로' }, hoodie: { cat: 'top', label: '후드티·맨투맨' }, dress: { cat: 'top', label: '원피스', covers: true },
+    knit: { cat: 'top', label: '니트·스웨터' }, polo: { cat: 'top', label: '카라 니트·폴로' }, sweat: { cat: 'top', label: '맨투맨' }, hoodie: { cat: 'top', label: '후드티' }, dress: { cat: 'top', label: '원피스', covers: true },
     jeans: { cat: 'bottom', label: '청바지' }, slacks: { cat: 'bottom', label: '긴바지·슬랙스' }, shorts: { cat: 'bottom', label: '반바지' }, skirt: { cat: 'bottom', label: '치마' },
     coat: { cat: 'outer', label: '코트' }, jacket: { cat: 'outer', label: '자켓' }, blazer: { cat: 'outer', label: '블레이저' },
     cardigan: { cat: 'outer', label: '가디건' }, puffer: { cat: 'outer', label: '패딩' }, bomber: { cat: 'outer', label: '바시티·블루종' },
@@ -336,6 +336,11 @@
     { id: 'my-knit-zara', cat: 'top', shape: 'knit', name: '블루 블랙 크림 청키 니트', colorName: '블랙 + 블루 + 크림 줄무늬', color: '#1f1f24', pattern: 'block', color2: '#5b84b4', color3: '#efe6cf', warm: 3, form: 1, base: false },
     { id: 'my-tee-black', cat: 'top', shape: 'tee', name: '블랙 로고 반팔티', colorName: '블랙', color: '#1a1a1c', warm: 1, form: 1, base: true },
     { id: 'my-varsity-green', cat: 'outer', shape: 'bomber', hood: true, name: '딥 그린 울 바시티 자켓', colorName: '딥 그린', color: '#17302a', color2: '#cfc4ae', warm: 3, form: 1, base: true },
+    { id: 'my-sweat-grey', cat: 'top', shape: 'sweat', name: '라이트 그레이 맨투맨', colorName: '라이트 그레이', color: '#d6d7d5', warm: 2, form: 1, base: true },
+    { id: 'my-knit-ivory', cat: 'top', shape: 'knit', name: '아이보리 하프넥 니트', colorName: '아이보리', color: '#f1ecdc', warm: 3, form: 2, base: true },
+    { id: 'my-shirt-denim', cat: 'top', shape: 'shirt', name: '데님 셔츠 (바이닐 프린트)', colorName: '중청 데님', color: '#4a6a9a', warm: 2, form: 1, base: true },
+    { id: 'my-knit-greyblue', cat: 'top', shape: 'knit', name: '그레이 블루 울 니트', colorName: '그레이 블루', color: '#8a9aab', warm: 3, form: 2, base: true },
+    { id: 'my-varsity-sg', cat: 'outer', shape: 'bomber', name: '버건디 SG 바시티 자켓', colorName: '버건디 + 화이트 소매', color: '#4a1f2b', color2: '#f3f3f0', sleeve: '#f2f2ef', warm: 2, form: 1, base: false },
     { id: 'my-coat-check', cat: 'outer', shape: 'coat', name: '글렌체크 울 코트', colorName: '브라운 그레이 체크', color: '#8a7f78', pattern: 'check', color2: '#5c524d', warm: 3, form: 3, base: true },
   ];
 
@@ -517,13 +522,16 @@
       + [164, 196, 228, 260, 292, 324].map(y => bothL(`M94,${y} L143,${y}`, .3) + bothL(`M58,${y + 4} L98,${y + 4}`, .3)).join('')
       + P('M124,100 L176,100 L180,118 L150,128 L120,118 Z', fillOf(it)) + L('M150,128 L150,344', .45)
       + bothL('M138,150 L144,343', 1, `stroke="${shade(it.color, -.3)}" stroke-width="2"`),
+    sweat: it => P(LONG, fillOf(it)) + P('M98,292 L202,292 L202,305 Q150,313 98,305 Z', 'url(#rib)', 'stroke="none"') + L('M98,292 L202,292', .35)
+      + P('M122,110 Q150,130 178,110 L176,104 Q150,122 124,104 Z', fillOf(it)) + P('M122,110 Q150,130 178,110 L176,104 Q150,122 124,104 Z', 'url(#rib)', 'stroke="none"')
+      + both('M67,326 L90,331 L88,346 L66,340 Z', 'url(#rib)', 'stroke="none"') + bothL('M67,326 L90,331', .35),
     polo: it => P(LONG, fillOf(it)) + P('M98,292 L202,292 L202,305 Q150,313 98,305 Z', 'url(#rib)', 'stroke="none"') + L('M98,292 L202,292', .35)
       + both('M67,326 L90,331 L88,346 L66,340 Z', 'url(#rib)', 'stroke="none"') + bothL('M67,326 L90,331', .35)
       + P('M150,136 L150,176', 'none') + L('M150,136 L150,176', .5) + [150, 166].map(y => `<circle cx="150" cy="${y}" r="2.2" fill="var(--seam)" fill-opacity=".8"/>`).join('')
       + both('M126,106 L150,136 L139,142 L118,116 Z', it.collar || it.color) + P('M126,106 Q150,118 174,106 L172,102 Q150,112 128,102 Z', it.collar || it.color),
     bomber: it => (it.hood ? P('M116,112 Q106,88 126,80 Q150,72 174,80 Q194,88 184,112 Q150,126 116,112 Z', shade(it.color, -.14)) : '')
       + both('M122,106 L138,150 L142,322 L92,322 Q94,250 95,200 L87,118 Z', fillOf(it))
-      + both('M87,116 Q63,126 65,180 L60,322 L96,326 L101,200 Q102,136 87,116 Z', fillOf(it))
+      + both('M87,116 Q63,126 65,180 L60,322 L96,326 L101,200 Q102,136 87,116 Z', it.sleeve || fillOf(it))
       + P('M92,318 L208,318 L208,336 Q150,342 92,336 Z', it.color) + bothL('M92,324 L150,324', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.6"`) + bothL('M92,331 L150,331', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.6"`)
       + both('M60,314 L96,318 L95,336 L59,332 Z', it.color) + bothL('M61,320 L95,323', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.4"`) + bothL('M60,327 L95,330', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.4"`)
       + P('M124,100 L176,100 L180,118 L150,128 L120,118 Z', shade(it.color, -.1)) + L('M150,128 L150,320', .5)
