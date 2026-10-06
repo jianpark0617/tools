@@ -67,8 +67,6 @@
   .stage-panel, .closet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
   .stage { background: var(--stage); border-radius: 12px; display: flex; justify-content: center; padding-block: 12px; }
   #stage { height: min(64vh, 560px); width: auto; max-width: 100%; display: block; }
-  #stage.has-up { touch-action: none; }
-  #stage image.drag { cursor: grab; }
 
   .outfit { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-size: .92rem; }
   .outfit dt { color: var(--muted); font-size: .78rem; letter-spacing: .04em; padding-top: 2px; }
@@ -130,17 +128,34 @@
   .add:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
   .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  .adjust { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 10px; }
-  .adjust[hidden] { display: none; }
-  .adjust-head { display: grid; gap: 2px; }
-  .adjust-head span { font-size: .82rem; color: var(--muted); }
-  .adjust label { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted); }
-  .adjust output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
-  input[type="range"] { width: 100%; accent-color: var(--accent); }
-  .adj-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .field { display: grid; gap: 4px; }
-  .field[hidden] { display: none; }
-  select { font: inherit; font-size: .9rem; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+  .edit-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; font-size: .88rem; }
+  .edit-row[hidden] { display: none; }
+  .edit-row .btn { flex: 0 0 auto; }
+  .field { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); min-width: 0; }
+  select, input[type="text"] { font: inherit; font-size: .92rem; color: var(--ink); padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); width: 100%; min-width: 0; box-sizing: border-box; }
+  input[type="color"] { width: 100%; height: 38px; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-sizing: border-box; }
+
+  /* The "is this right?" sheet that follows a photo */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(10, 14, 20, .55); display: grid; place-items: center; padding: 16px; z-index: 10; }
+  .sheet-bg[hidden] { display: none; }
+  .sheet { background: var(--panel); color: var(--ink); border-radius: 16px; width: min(100%, 560px); max-height: 100%; overflow-y: auto; padding: 18px; display: grid; gap: 14px; box-sizing: border-box; }
+  .sheet h2 { font-family: var(--f-display); font-weight: 400; font-size: 1.3rem; margin: 0; }
+  .sheet-top { display: grid; grid-template-columns: 96px 112px minmax(0, 1fr); gap: 12px; align-items: start; }
+  .sheet-top img, .sheet-top svg { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: var(--stage); display: block; }
+  .sheet-top .lab { font-size: .72rem; color: var(--muted); text-align: center; margin-top: 4px; }
+  .sheet-top .photo[hidden] { display: none; }
+  @media (max-width: 480px) { .sheet-top { grid-template-columns: 1fr 1fr; } .sheet-top .ai { grid-column: 1 / -1; } }
+  .ai { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: .86rem; display: grid; gap: 4px; align-content: start; min-height: 60px; }
+  .ai b { font-weight: 500; }
+  .ai .spin { width: 14px; height: 14px; border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .ai .spin { animation: none; } }
+  .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .fields .wide { grid-column: 1 / -1; }
+  .fields .field[hidden] { display: none; }
+  .sheet-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .sheet-actions .btn { flex: 0 1 auto; }
+  .sheet-actions .btn.danger { margin-right: auto; }
   .tip { margin: 0; font-size: .82rem; color: var(--muted); max-width: 62ch; }
 
   .saved h2 { font-family: var(--f-display); font-weight: 400; font-size: 1.35rem; margin: 0 0 10px; }
@@ -166,7 +181,7 @@
       <h1>아침 피팅룸</h1>
       <p class="sub">갈아입어 보기 전에 마네킹에 먼저 입혀 보세요.</p>
     </div>
-    <div class="today"><span id="today-date"></span><span class="pill">v0.1</span></div>
+    <div class="today"><span id="today-date"></span><span class="pill">v0.2</span></div>
   </header>
 
   <section class="profile" aria-label="내 체형과 피부">
@@ -222,25 +237,11 @@
     <section class="closet" aria-label="옷장">
       <div class="tabs" role="tablist" id="tabs"></div>
       <div class="grid" id="grid"></div>
-      <div class="adjust" id="adjust" hidden>
-        <div class="adjust-head"><strong id="adj-name"></strong><span>마네킹 위의 사진을 끌어서 위치를 맞추세요.</span></div>
-        <label for="adj-size">크기 <output id="adj-size-out" for="adj-size"></output></label>
-        <input type="range" id="adj-size" min="40" max="180" step="1" value="100">
-        <label for="adj-tol">배경 지우기 <output id="adj-tol-out" for="adj-tol"></output></label>
-        <input type="range" id="adj-tol" min="0" max="120" step="2" value="40">
-        <div class="adj-meta">
-          <div class="field" id="adj-warm-field">
-            <label for="adj-warm">두께</label>
-            <select id="adj-warm"><option value="1">얇음</option><option value="2">보통</option><option value="3">두꺼움</option></select>
-          </div>
-          <div class="field">
-            <label for="adj-form">느낌</label>
-            <select id="adj-form"><option value="1">편한</option><option value="2">무난한</option><option value="3">단정한</option></select>
-          </div>
-        </div>
-        <button type="button" id="adj-del" class="btn danger">이 옷 삭제</button>
+      <div class="edit-row" id="edit-row" hidden>
+        <span id="edit-name"></span>
+        <button type="button" id="btn-edit" class="btn">이 옷 수정</button>
       </div>
-      <p class="tip">옷 사진은 밝은 단색 바닥에 펼쳐 놓고 위에서 찍으면 배경이 깔끔하게 지워져요. 올린 사진은 이 기기에만 저장돼요.</p>
+      <p class="tip">사진을 올리면 AI가 옷의 종류와 색을 읽어서 마네킹용 그림으로 바꿔요. 옷 전체가 보이게 밝은 곳에서 찍으면 잘 알아봐요. 사진 원본은 저장하지 않아요.</p>
     </section>
   </main>
 
@@ -250,6 +251,31 @@
   </section>
 </div>
 
+<div class="sheet-bg" id="sheet-bg" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <h2 id="sheet-title">이 옷이 맞나요?</h2>
+    <div class="sheet-top">
+      <div class="photo" id="sh-photo-wrap"><img id="sh-photo" alt="올린 사진"><div class="lab">올린 사진</div></div>
+      <div><svg id="sh-preview" viewBox="0 0 300 640" aria-hidden="true"></svg><div class="lab">마네킹용 그림</div></div>
+      <div class="ai" id="sh-ai"></div>
+    </div>
+    <div class="fields">
+      <label class="field wide">이름<input type="text" id="sh-name" maxlength="24" placeholder="예: 회색 후드티"></label>
+      <label class="field">종류<select id="sh-cat"></select></label>
+      <label class="field">모양<select id="sh-shape"></select></label>
+      <label class="field">색<input type="color" id="sh-color"></label>
+      <label class="field">무늬<select id="sh-pattern"><option value="solid">없음</option><option value="stripe">줄무늬</option><option value="check">체크</option><option value="dots">도트</option></select></label>
+      <label class="field" id="sh-color2-field">무늬 색<input type="color" id="sh-color2"></label>
+      <label class="field">두께<select id="sh-warm"><option value="1">얇음</option><option value="2">보통</option><option value="3">두꺼움</option></select></label>
+      <label class="field">느낌<select id="sh-form"><option value="1">편한</option><option value="2">무난한</option><option value="3">단정한</option></select></label>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" id="sh-delete" class="btn danger" hidden>이 옷 삭제</button>
+      <button type="button" id="sh-cancel" class="btn">취소</button>
+      <button type="button" id="sh-ok" class="btn primary">옷장에 넣기</button>
+    </div>
+  </div>
+</div>
 <input type="file" id="file-input" class="vh" accept="image/*">
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -262,18 +288,24 @@
   const SUMMARY_ORDER = ['outer', 'top', 'bottom', 'shoes'];
   // Thumbnail crop for each category, in stage coordinates.
   const CROP = { top: '52 98 196 256', bottom: '70 258 160 362', outer: '50 100 200 390', shoes: '88 540 124 88' };
-  // Where an uploaded photo lands on the mannequin before the user moves it.
-  const BOX = {
-    top: { x: 62, y: 104, w: 176, h: 215 },
-    bottom: { x: 96, y: 262, w: 108, h: 350 },
-    outer: { x: 56, y: 104, w: 188, h: 380 },
-    shoes: { x: 96, y: 592, w: 108, h: 34 },
+  const CROP_DRESS = '52 98 196 390';
+  // Every garment the app can draw. A photo becomes one of these.
+  const SHAPE_INFO = {
+    tee: { cat: 'top', label: '반팔 티셔츠' }, long: { cat: 'top', label: '긴팔 티셔츠' }, shirt: { cat: 'top', label: '셔츠·블라우스' },
+    knit: { cat: 'top', label: '니트·스웨터' }, hoodie: { cat: 'top', label: '후드티·맨투맨' }, dress: { cat: 'top', label: '원피스', covers: true },
+    jeans: { cat: 'bottom', label: '청바지' }, slacks: { cat: 'bottom', label: '긴바지·슬랙스' }, shorts: { cat: 'bottom', label: '반바지' }, skirt: { cat: 'bottom', label: '치마' },
+    coat: { cat: 'outer', label: '코트' }, jacket: { cat: 'outer', label: '자켓' }, blazer: { cat: 'outer', label: '블레이저' },
+    cardigan: { cat: 'outer', label: '가디건' }, puffer: { cat: 'outer', label: '패딩' },
+    sneaker: { cat: 'shoes', label: '운동화' }, loafer: { cat: 'shoes', label: '로퍼·구두' }, boots: { cat: 'shoes', label: '부츠' }, sandal: { cat: 'shoes', label: '샌들·슬리퍼' },
   };
+  const shapesOf = cat => Object.keys(SHAPE_INFO).filter(k => SHAPE_INFO[k].cat === cat);
+  const covers = it => !!(it && SHAPE_INFO[it.shape] && SHAPE_INFO[it.shape].covers);
+  const cropOf = it => it.shape === 'dress' ? CROP_DRESS : it.shape === 'hoodie' ? '52 72 196 282' : CROP[it.cat];
 
   // warm: 1 얇음 · 2 보통 · 3 두꺼움, form: 1 편한 · 2 무난한 · 3 단정한, base: 어디에나 어울리는 기본색
   const BUILTIN = [
     { id: 'tee-white', cat: 'top', shape: 'tee', name: '반팔 티셔츠', colorName: '화이트', color: '#F3F2EE', warm: 1, form: 1, base: true },
-    { id: 'tee-stripe', cat: 'top', shape: 'long', name: '스트라이프 긴팔티', colorName: '네이비 줄무늬', color: '#F3F2EE', stripe: '#26365E', warm: 2, form: 1, base: true },
+    { id: 'tee-stripe', cat: 'top', shape: 'long', name: '스트라이프 긴팔티', colorName: '네이비 줄무늬', color: '#F3F2EE', pattern: 'stripe', color2: '#26365E', warm: 2, form: 1, base: true },
     { id: 'shirt-blue', cat: 'top', shape: 'shirt', name: '옥스포드 셔츠', colorName: '스카이 블루', color: '#A8C3E0', warm: 2, form: 3 },
     { id: 'knit-oat', cat: 'top', shape: 'knit', name: '라운드 니트', colorName: '오트밀', color: '#D9C9AA', warm: 3, form: 2, base: true },
     { id: 'jean', cat: 'bottom', shape: 'jeans', name: '스트레이트 데님', colorName: '인디고', color: '#33507A', warm: 2, form: 1, base: true, denim: true },
@@ -340,7 +372,17 @@
   const L = (d, op = .35, extra = '') => `<path d="${d}" fill="none" stroke="var(--seam)" stroke-width="1.1" stroke-opacity="${op}" stroke-linecap="round" ${extra}/>`;
   const both = (d, fill, extra) => P(d, fill, extra) + P(M(d), fill, extra);
   const bothL = (d, op, extra) => L(d, op, extra) + L(M(d), op, extra);
-  const fillOf = it => it.stripe ? `url(#pat-${it.id})` : it.color;
+  const patterned = it => it.pattern && it.pattern !== 'solid' && it.color2;
+  const fillOf = it => patterned(it) ? `url(#pat-${it.id})` : it.color;
+  // The <pattern> for a striped, checked or dotted garment.
+  function patternDef(it) {
+    if (!patterned(it)) return '';
+    const bg = `<rect width="14" height="14" fill="${it.color}"/>`;
+    const mark = it.pattern === 'stripe' ? `<rect y="8" width="14" height="5" fill="${it.color2}"/>`
+      : it.pattern === 'check' ? `<rect width="7" height="14" fill="${it.color2}" fill-opacity=".5"/><rect width="14" height="7" fill="${it.color2}" fill-opacity=".5"/>`
+      : `<circle cx="7" cy="7" r="2.2" fill="${it.color2}"/>`;
+    return `<pattern id="pat-${it.id}" width="14" height="14" patternUnits="userSpaceOnUse">${bg}${mark}</pattern>`;
+  }
 
   const TORSO = 'M118,114 C104,116 94,122 92,138 L98,200 C102,232 110,252 112,275 C108,300 100,320 100,345 L200,345 C200,320 192,300 188,275 C190,252 198,232 202,200 L208,138 C206,122 196,116 182,114 Z';
   const ARM_L = 'M94,124 C82,130 78,150 78,172 L70,328 C68,344 70,358 77,362 C85,363 88,352 88,340 L100,196 Z';
@@ -396,39 +438,63 @@
   const SHAPES = {
     tee: it => P(TEE, fillOf(it)) + L('M124,110 Q150,126 176,110', .6) + bothL('M71,183 L97,192', .3),
     long: it => P(LONG, fillOf(it)) + L('M124,110 Q150,126 176,110', .6) + bothL('M67,330 L89,335', .35),
-    shirt: it => P(SHIRT, it.color) + SHIRT_COLLAR(it)
+    shirt: it => P(SHIRT, fillOf(it)) + SHIRT_COLLAR(it)
       + L('M150,132 L150,312', .4) + [152, 176, 200, 224, 248, 272].map(y => `<circle cx="153" cy="${y}" r="1.7" fill="var(--seam)"/>`).join('')
       + bothL('M67,328 L90,333', .35),
-    knit: it => P(LONG, it.color) + P('M98,292 L202,292 L202,305 Q150,313 98,305 Z', 'url(#rib)', 'stroke="none"')
-      + L('M98,292 L202,292', .35) + P('M122,110 Q150,130 178,110 L176,104 Q150,122 124,104 Z', it.color)
+    knit: it => P(LONG, fillOf(it)) + P('M98,292 L202,292 L202,305 Q150,313 98,305 Z', 'url(#rib)', 'stroke="none"')
+      + L('M98,292 L202,292', .35) + P('M122,110 Q150,130 178,110 L176,104 Q150,122 124,104 Z', fillOf(it))
       + P('M122,110 Q150,130 178,110 L176,104 Q150,122 124,104 Z', 'url(#rib)', 'stroke="none"')
       + both('M67,326 L90,331 L88,346 L66,340 Z', 'url(#rib)', 'stroke="none"') + bothL('M67,326 L90,331', .35),
-    jeans: it => P('M106,266 L194,266 L199,340 C197,420 192,500 190,606 L161,606 L152,372 L148,372 L139,606 L110,606 C108,500 103,420 101,340 Z', it.color)
+    jeans: it => P('M106,266 L194,266 L199,340 C197,420 192,500 190,606 L161,606 L152,372 L148,372 L139,606 L110,606 C108,500 103,420 101,340 Z', fillOf(it))
       + L('M106,277 L194,277', .5) + L('M150,277 L150,322 Q150,332 142,336', .5, TOPSTITCH)
       + bothL('M114,277 Q118,298 104,304', .5, TOPSTITCH) + bothL('M111,598 L139,598', .5, TOPSTITCH),
-    slacks: it => P('M106,266 L194,266 L200,340 L196,608 L160,608 L151,370 L149,370 L140,608 L104,608 L100,340 Z', it.color)
+    slacks: it => P('M106,266 L194,266 L200,340 L196,608 L160,608 L151,370 L149,370 L140,608 L104,608 L100,340 Z', fillOf(it))
       + L('M106,277 L194,277', .45) + L('M150,277 L150,330', .4) + bothL('M123,292 L122,604', .3),
-    shorts: it => P('M106,266 L194,266 L202,340 L208,412 L156,416 L151,372 L149,372 L144,416 L92,412 L98,340 Z', it.color)
+    shorts: it => P('M106,266 L194,266 L202,340 L208,412 L156,416 L151,372 L149,372 L144,416 L92,412 L98,340 Z', fillOf(it))
       + L('M106,277 L194,277', .45) + L('M150,277 L150,330', .4) + bothL('M93,402 L144,406', .35),
-    skirt: it => P('M110,266 L190,266 L224,472 Q150,484 76,472 Z', it.color) + L('M110,278 L190,278', .5)
+    skirt: it => P('M110,266 L190,266 L224,472 Q150,484 76,472 Z', fillOf(it)) + L('M110,278 L190,278', .5)
       + [-3, -2, -1, 0, 1, 2, 3].map(i => L(`M${150 + i * 11},279 L${150 + i * 20},${478 - Math.abs(i) * 1.6}`, .3)).join(''),
-    coat: it => both('M124,106 L138,152 L144,482 L86,482 Q94,330 96,200 L89,119 Z', it.color)
-      + both('M89,116 Q71,123 67,176 L59,334 L94,338 L101,200 Q102,136 89,116 Z', it.color)
+    coat: it => both('M124,106 L138,152 L144,482 L86,482 Q94,330 96,200 L89,119 Z', fillOf(it))
+      + both('M89,116 Q71,123 67,176 L59,334 L94,338 L101,200 Q102,136 89,116 Z', fillOf(it))
       + both('M126,108 L106,130 L114,136 L140,184 L138,152 Z', shade(it.color, -.12))
       + bothL('M138,152 L144,481', 1, `stroke="${shade(it.color, -.35)}" stroke-width="2.4"`)
       + bothL('M100,374 L132,374', .45) + bothL('M60,320 L94,324', .4),
-    jacket: it => both('M124,106 L138,152 L142,292 L94,292 Q96,250 97,200 L89,119 Z', it.color)
-      + both('M89,116 Q73,123 69,176 L61,332 L93,336 L101,200 Q102,136 89,116 Z', it.color)
+    jacket: it => both('M124,106 L138,152 L142,292 L94,292 Q96,250 97,200 L89,119 Z', fillOf(it))
+      + both('M89,116 Q73,123 69,176 L61,332 L93,336 L101,200 Q102,136 89,116 Z', fillOf(it))
       + both('M126,108 L106,120 L118,146 L138,152 Z', shade(it.color, -.12))
-      + both('M106,178 L132,178 L130,190 L108,190 Z', it.color)
+      + both('M106,178 L132,178 L130,190 L108,190 Z', fillOf(it))
       + bothL('M138,152 L142,291', 1, `stroke="${shade(it.color, -.35)}" stroke-width="2.2"`)
       + bothL('M95,280 L142,280', .9, TOPSTITCH) + bothL('M62,320 L93,324', .9, TOPSTITCH) + bothL('M136,156 L138,288', .9, TOPSTITCH),
-    sneaker: it => both('M106,598 L138,598 Q144,602 144,612 L144,620 L102,620 Q95,620 96,612 Q98,602 106,598 Z', it.color)
+    sneaker: it => both('M106,598 L138,598 Q144,602 144,612 L144,620 L102,620 Q95,620 96,612 Q98,602 106,598 Z', fillOf(it))
       + bothL('M97,615 L144,615', .5) + bothL('M116,603 L130,603', .4),
-    loafer: it => both('M104,603 Q112,599 138,600 Q144,604 144,612 L144,620 L102,620 Q95,620 96,613 Q97,606 104,603 Z', it.color)
+    loafer: it => both('M104,603 Q112,599 138,600 Q144,604 144,612 L144,620 L102,620 Q95,620 96,613 Q97,606 104,603 Z', fillOf(it))
       + bothL('M112,607 L134,607', .6),
-    boots: it => both('M110,552 L141,552 L143,612 L143,620 L102,620 Q95,620 96,612 Q100,604 110,598 Z', it.color)
+    boots: it => both('M110,552 L141,552 L143,612 L143,620 L102,620 Q95,620 96,612 Q100,604 110,598 Z', fillOf(it))
       + both('M114,560 L122,560 L122,590 L114,590 Z', 'var(--seam)', 'fill-opacity=".45" stroke="none"') + bothL('M97,616 L143,616', .5),
+    hoodie: it => P('M116,112 Q106,90 126,82 Q150,74 174,82 Q194,90 184,112 Q150,126 116,112 Z', shade(it.color, -.14))
+      + P(LONG, fillOf(it)) + P('M98,292 L202,292 L202,305 Q150,313 98,305 Z', 'url(#rib)', 'stroke="none"') + L('M98,292 L202,292', .35)
+      + P('M120,110 Q150,130 180,110 Q150,100 120,110 Z', shade(it.color, -.22))
+      + L('M143,124 L141,166', .5) + L('M157,124 L159,166', .5)
+      + L('M112,226 L188,226 L188,288 L112,288', .4) + both('M67,326 L90,331 L88,346 L66,340 Z', 'url(#rib)', 'stroke="none"'),
+    dress: it => P('M124,110 Q150,126 176,110 L210,120 Q224,140 232,190 L204,200 L202,186 L200,290 L228,470 Q150,482 72,470 L100,290 L98,186 L96,200 L68,190 Q76,140 90,120 Z', fillOf(it))
+      + L('M124,110 Q150,126 176,110', .6) + L('M100,290 L200,290', .4) + bothL('M71,183 L97,192', .3),
+    blazer: it => both('M124,106 L138,152 L144,372 L86,372 Q94,300 96,200 L89,119 Z', fillOf(it))
+      + both('M89,116 Q71,123 67,176 L59,334 L94,338 L101,200 Q102,136 89,116 Z', fillOf(it))
+      + both('M126,108 L106,134 L116,140 L142,196 L138,152 Z', shade(it.color, -.12))
+      + bothL('M138,152 L144,371', 1, `stroke="${shade(it.color, -.35)}" stroke-width="2.2"`)
+      + bothL('M98,300 L134,300', .45) + bothL('M60,320 L94,324', .4) + `<circle cx="153" cy="262" r="2" fill="var(--seam)"/>`,
+    cardigan: it => both('M124,106 L136,146 L140,334 L96,334 Q97,250 97,200 L89,119 Z', fillOf(it))
+      + both('M89,116 Q73,123 69,176 L61,332 L93,336 L101,200 Q102,136 89,116 Z', fillOf(it))
+      + both('M96,320 L140,320 L140,334 L96,334 Z', 'url(#rib)', 'stroke="none"') + both('M61,318 L93,322 L93,336 L61,332 Z', 'url(#rib)', 'stroke="none"')
+      + both('M124,106 L136,146 L132,148 L121,114 Z', shade(it.color, -.12))
+      + [170, 200, 230, 260, 290].map(y => `<circle cx="146" cy="${y}" r="2" fill="var(--seam)" fill-opacity=".7"/>`).join(''),
+    puffer: it => both('M122,106 L138,150 L144,344 L90,344 Q93,250 95,200 L86,118 Z', fillOf(it))
+      + both('M86,116 Q62,126 63,180 L56,340 L96,344 L101,200 Q102,136 86,116 Z', fillOf(it))
+      + [164, 196, 228, 260, 292, 324].map(y => bothL(`M94,${y} L143,${y}`, .3) + bothL(`M58,${y + 4} L98,${y + 4}`, .3)).join('')
+      + P('M124,100 L176,100 L180,118 L150,128 L120,118 Z', fillOf(it)) + L('M150,128 L150,344', .45)
+      + bothL('M138,150 L144,343', 1, `stroke="${shade(it.color, -.3)}" stroke-width="2"`),
+    sandal: it => both('M103,612 L144,612 Q147,620 140,621 L102,621 Q95,620 97,615 Z', fillOf(it))
+      + bothL('M108,612 L122,603 L136,612', .7) + bothL('M126,612 L130,604', .5),
   };
 
   function buildDefs() {
@@ -439,9 +505,7 @@
       <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
     let html = layerShadow('lay-top', 1.6, 1.2, .35) + layerShadow('lay-outer', 2.6, 2, .5);
     html += '<pattern id="rib" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="1.4" height="4" fill="#000" fill-opacity=".14"/></pattern>';
-    for (const it of BUILTIN) if (it.stripe) {
-      html += `<pattern id="pat-${it.id}" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="${it.color}"/><rect y="7" width="12" height="4" fill="${it.stripe}"/></pattern>`;
-    }
+    for (const it of allItems()) html += patternDef(it);
     document.getElementById('defs').innerHTML = html;
   }
 
@@ -467,7 +531,7 @@
   const state = Object.assign({ tab: 'top', weather: defaultWeather(), body: 'm', skin: { depth: 0, tone: 'unknown' }, rec: null }, saved || JSON.parse(JSON.stringify(DEFAULT)));
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify({ sel: state.sel, uploads: state.uploads, combos: state.combos, weather: state.weather, body: state.body, skin: state.skin, rec: state.rec })); }
-    catch (e) { toast('사진 용량이 커서 이 기기에 저장하지 못했어요. 새로고침하면 올린 사진이 사라져요.'); }
+    catch (e) { toast('이 기기에 저장하지 못했어요. 새로고침하면 바뀐 내용이 사라질 수 있어요.'); }
   }
 
   const allItems = () => BUILTIN.concat(state.uploads);
@@ -475,37 +539,29 @@
   const itemsOf = cat => allItems().filter(i => i.cat === cat);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  function geom(u) {
-    const box = BOX[u.cat];
-    const k = Math.min(box.w / u.aw, box.h / u.ah) * u.s;
-    const w = u.aw * k, h = u.ah * k;
-    return { x: u.cx - w / 2, y: u.cy - h / 2, w, h };
-  }
-  function uploadSVG(u, interactive) {
-    const g = geom(u);
-    return `<image ${interactive ? `data-up="${u.id}" class="drag"` : ''} href="${u.src}" x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" preserveAspectRatio="none"/>`;
-  }
-  const garmentSVG = (it, interactive) => it.src ? uploadSVG(it, interactive) : SHAPES[it.shape](it);
+  const garmentSVG = it => SHAPES[it.shape](it);
   // Bottom to top: shoes, bottoms, inner top, outerwear. Each worn layer casts a shadow on what is under it,
   // and a shirt collar is drawn again over a drawn coat or jacket, the way it sits when worn.
   function outfitSVG(sel, interactive) {
     const get = c => byId(sel[c]);
     const top = get('top'), outer = get('outer');
-    const layer = (it, filter) => !it ? '' : filter ? `<g filter="url(#${filter})">${garmentSVG(it, interactive)}</g>` : garmentSVG(it, interactive);
-    let svg = mannequinSVG(state.body) + layer(get('shoes')) + layer(get('bottom')) + layer(top, 'lay-top');
+    const layer = (it, filter) => !it ? '' : filter ? `<g filter="url(#${filter})">${garmentSVG(it)}</g>` : garmentSVG(it);
+    // A dress stands in for the bottom.
+    let svg = mannequinSVG(state.body) + layer(get('shoes')) + (covers(top) ? '' : layer(get('bottom'))) + layer(top, 'lay-top');
     if (outer) {
       svg += layer(outer, 'lay-outer');
-      if (top && !top.src && top.shape === 'shirt' && !outer.src) svg += SHIRT_COLLAR(top);
+      if (top && top.shape === 'shirt') svg += SHIRT_COLLAR(top);
     }
     return fitBody(svg, state.body);
   }
-  const activeUpload = () => { const it = byId(state.sel[state.tab]); return it && it.src ? it : null; };
+  const isMine = it => !!it && state.uploads.includes(it);
+  const activeUpload = () => { const it = byId(state.sel[state.tab]); return isMine(it) ? it : null; };
 
   // ---------- recommendation ----------
   // Every combination in the closet gets a score from the weather, the colours and how dressy each piece is;
   // pressing the button again walks down the ranking.
   function weatherCost(o, w) {
-    const ow = o.outer ? o.outer.warm : 0, t = o.top.warm, b = o.bottom.warm, s = o.shoes.warm;
+    const ow = o.outer ? o.outer.warm : 0, t = o.top.warm, b = o.bottom ? o.bottom.warm : o.top.warm, s = o.shoes.warm;
     if (w === 'hot') return ow * 3 + Math.max(0, t - 1) * 2 + Math.max(0, b - 1) * 1.5 + (s >= 3 ? 3 : 0);
     if (w === 'mild') return (ow >= 3 ? 3 : 0) + (t >= 3 ? (ow ? 2.5 : .5) : 0) + (b <= 1 ? 1.5 : 0) + (s >= 3 ? 1 : 0);
     if (w === 'chilly') return (ow === 0 ? 4 : 0) + (t <= 1 ? 1.5 : 0) + (b <= 1 ? 4 : 0);
@@ -519,9 +575,9 @@
     const forms = worn.map(i => i.form);
     const spread = Math.max(...forms) - Math.min(...forms);
     const avgForm = forms.reduce((a, b) => a + b, 0) / forms.length;
-    const contrast = Math.abs(hsl(o.top.color).l - hsl(o.bottom.color).l);
+    const contrast = o.bottom ? Math.abs(hsl(o.top.color).l - hsl(o.bottom.color).l) : .3;
     const close = accents.length === 2 && hueGap(hsl(accents[0].color).h, hsl(accents[1].color).h) < 35;
-    return { accents, spread, avgForm, contrast, close, denimTwice: !!(o.outer && o.outer.denim && o.bottom.denim) };
+    return { accents, spread, avgForm, contrast, close, denimTwice: !!(o.outer && o.outer.denim && o.bottom && o.bottom.denim) };
   }
 
   // How warm (+1, yellow-based) or cool (-1, blue-based) a colour reads next to the face.
@@ -535,7 +591,7 @@
     if (h >= 300 && h < 345) return -.6 * c;
     return h >= 8 && h < 20 ? .5 * c : -.3 * c;
   }
-  const itemTemp = it => it.stripe ? (colorTemp(it.color) + colorTemp(it.stripe)) / 2 : colorTemp(it.color);
+  const itemTemp = it => patterned(it) ? (colorTemp(it.color) + colorTemp(it.color2)) / 2 : colorTemp(it.color);
   const faceItems = o => [o.top, o.outer].filter(Boolean);
   // +1 when the colour flatters the chosen undertone, -1 when it fights it, 0 when no undertone is set.
   const toneFit = it => {
@@ -598,7 +654,7 @@
     const list = [];
     // On the 남성 mannequin, pieces marked as womenswear stay in the closet but are left out of recommendations.
     const bottoms = itemsOf('bottom').filter(i => state.body === 'f' || !i.womens);
-    for (const top of itemsOf('top')) for (const bottom of bottoms) for (const shoes of itemsOf('shoes')) for (const outer of outers) {
+    for (const top of itemsOf('top')) for (const bottom of (covers(top) ? [null] : bottoms)) for (const shoes of itemsOf('shoes')) for (const outer of outers) {
       const o = { top, bottom, shoes, outer };
       list.push({ o, v: score(o, state.weather) });
     }
@@ -610,7 +666,7 @@
     for (const x of list) { if (picked.length === 6) break; if (!picked.includes(x)) picked.push(x); }
     return picked;
   }
-  const selOf = o => ({ top: o.top.id, bottom: o.bottom.id, outer: o.outer ? o.outer.id : null, shoes: o.shoes.id });
+  const selOf = o => ({ top: o.top.id, bottom: o.bottom ? o.bottom.id : null, outer: o.outer ? o.outer.id : null, shoes: o.shoes.id });
   const sameSel = (a, b) => SUMMARY_ORDER.every(k => (a[k] || null) === (b[k] || null));
   const closetKey = () => state.weather + '|' + state.body + '|' + state.skin.depth + state.skin.tone + '|' + allItems().map(i => `${i.id}:${i.warm}:${i.form}:${i.color}`).join(',');
 
@@ -631,19 +687,14 @@
   const stage = $('stage');
 
   function renderStage() {
-    let html = FLOOR + outfitSVG(state.sel, true);
-    const u = activeUpload();
-    if (u) {
-      const g = geom(u);
-      html += `<rect id="up-outline" x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3" pointer-events="none"/>`;
-    }
-    stage.innerHTML = html;
-    stage.classList.toggle('has-up', LAYER_ORDER.some(c => { const it = byId(state.sel[c]); return it && it.src; }));
+    buildDefs();
+    stage.innerHTML = FLOOR + outfitSVG(state.sel, true);
   }
 
   function renderOutfit() {
     $('outfit').innerHTML = SUMMARY_ORDER.map(c => {
       const it = byId(state.sel[c]);
+      if (c === 'bottom' && covers(byId(state.sel.top))) return `<dt>${LABEL[c]}</dt><dd><span class="c">원피스로 대신</span></dd>`;
       const val = it ? `${esc(it.name)}${it.colorName ? ` <span class="c">· ${esc(it.colorName)}</span>` : ''}` : '<span class="c">없음</span>';
       return `<dt>${LABEL[c]}</dt><dd>${val}</dd>`;
     }).join('');
@@ -676,8 +727,8 @@
 
   function tileHTML(it) {
     const pressed = state.sel[it.cat] === it.id;
-    const thumb = it.src ? `<img src="${it.src}" alt="">` : `<svg viewBox="${CROP[it.cat]}" aria-hidden="true">${SHAPES[it.shape](it)}</svg>`;
-    const tag = `<span class="tag"><i style="background:${it.color}"></i>${it.src ? '내 사진 · ' : ''}${esc(it.colorName)}</span>`;
+    const thumb = `<svg viewBox="${cropOf(it)}" aria-hidden="true">${garmentSVG(it)}</svg>`;
+    const tag = `<span class="tag"><i style="background:${it.color}"></i>${isMine(it) ? '내 옷 · ' : ''}${esc(it.colorName)}</span>`;
     const fit = (it.cat === 'top' || it.cat === 'outer') && state.skin.tone !== 'unknown' && state.skin.tone !== 'neutral' && toneFit(it) > .3
       ? `<span class="fit">${TONE_NAMES[state.skin.tone]} 추천</span>` : '';
     return `<button type="button" class="tile" data-id="${it.id}" aria-pressed="${pressed}">${fit}<span class="thumb">${thumb}</span><span class="tname">${esc(it.name)}</span>${tag}</button>`;
@@ -692,21 +743,12 @@
       html += `<button type="button" class="tile" data-id="" aria-pressed="${!state.sel.outer}"><span class="thumb"><span class="none">없음</span></span><span class="tname">아우터 없이</span><span class="tag">따뜻한 날</span></button>`;
     }
     html += itemsOf(state.tab).map(tileHTML).join('');
-    html += `<label class="tile add" for="file-input"><span class="thumb">+</span><span class="tname">사진으로 추가</span><span class="tag">배경 자동 제거</span></label>`;
+    html += `<label class="tile add" for="file-input"><span class="thumb">+</span><span class="tname">사진으로 추가</span><span class="tag">AI가 알아봐요</span></label>`;
     $('grid').innerHTML = html;
 
     const u = activeUpload();
-    $('adjust').hidden = !u;
-    if (u) {
-      $('adj-name').textContent = u.name;
-      $('adj-size').value = Math.round(u.s * 100);
-      $('adj-size-out').textContent = `${Math.round(u.s * 100)}%`;
-      $('adj-tol').value = u.tol;
-      $('adj-warm').value = u.warm;
-      $('adj-form').value = u.form;
-      $('adj-tol-out').textContent = u.tol === 0 ? '끔' : u.tol;
-      disarmDelete();
-    }
+    $('edit-row').hidden = !u;
+    if (u) $('edit-name').textContent = u.name;
   }
 
   function renderCombos() {
@@ -732,73 +774,208 @@
     if (!sticky) toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
-  // ---------- photo → cut-out garment ----------
+  // ---------- photo → analysed, drawn garment ----------
+  // A photo is shown to a vision model, which answers with the garment's kind, shape and colours.
+  // The app then draws that garment itself; the photo is not kept.
+  // Inside claude.ai the page asks Claude directly. Elsewhere it needs the small server in worker/ (set its URL here).
+  const ANALYZE_URL = '';
   const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
 
-  async function prepOriginal(file) {
+  let sampleFn = null;
+  (async () => {
+    try {
+      if (!window.claude || typeof window.claude.use !== 'function') return;
+      const fn = await window.claude.use('sample');
+      if (!fn) return;
+      const lim = await fn.limits().catch(() => null);
+      if (lim && lim.images) sampleFn = fn;
+    } catch (e) { /* no viewer runtime: the page works without it */ }
+  })();
+  const aiAvailable = () => !!(sampleFn || ANALYZE_URL);
+
+  const VISION_PROMPT = `사진에 찍힌 옷(또는 신발) 한 가지를 보고 JSON 객체 하나로만 답하세요. 설명 문장은 쓰지 마세요.
+필드:
+- category: "top"(상의, 원피스 포함) | "bottom"(하의) | "outer"(아우터) | "shoes"(신발). 옷이 아니면 "none".
+- shape: 가장 가까운 것 하나. ` + Object.entries(SHAPE_INFO).map(([k, v]) => `${k}=${v.label}`).join(', ') + `
+- name: 한국어로 짧은 이름, 색 포함 (예: "회색 후드티", "연청 와이드 데님")
+- color: 옷감의 주된 색을 #rrggbb로. 조명 때문에 밝거나 어둡게 보여도 실제 옷감 색으로 추정.
+- pattern: "solid" | "stripe" | "check" | "dots". 작은 로고나 프린트는 solid.
+- color2: 무늬의 두 번째 색 #rrggbb. 무늬가 없으면 null.
+- warm: 두께감. 1=얇음(여름용) 2=보통 3=두꺼움(기모, 니트, 겨울용)
+- form: 1=편한·캐주얼 2=무난 3=단정·격식
+- confidence: 0~1
+- note: 사용자에게 보여줄 한 문장 (예: "오버핏 회색 후드티로 보여요.")
+예: {"category":"top","shape":"hoodie","name":"회색 후드티","color":"#8a8d92","pattern":"solid","color2":null,"warm":3,"form":1,"confidence":0.9,"note":"오버핏 회색 후드티로 보여요."}`;
+
+  const blobToBase64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+  async function analyzePhoto(blob) {
+    if (sampleFn) return sampleFn.json(VISION_PROMPT, { images: [blob], modelTier: 'default' });
+    if (ANALYZE_URL) {
+      const r = await fetch(ANALYZE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: await blobToBase64(blob), media_type: 'image/jpeg' }) });
+      if (!r.ok) throw { code: 'upstream_error', message: 'HTTP ' + r.status };
+      return r.json();
+    }
+    throw { code: 'unavailable' };
+  }
+  const AI_ERRORS = {
+    unavailable: '이 화면에서는 AI 분석을 쓸 수 없어서 색만 읽었어요. 종류와 모양을 직접 골라 주세요.',
+    not_granted: 'AI 사용을 허용하지 않아서 색만 읽었어요. 종류와 모양을 직접 골라 주세요.',
+    sampling_disabled: '이 계정에서는 AI 분석을 쓸 수 없어요. 종류와 모양을 직접 골라 주세요.',
+    rate_limited: '요청이 많아서 잠시 쉬어야 해요. 지금은 직접 고르거나, 잠시 후 다시 올려 주세요.',
+    image_rejected: '이 사진은 읽을 수 없는 형식이에요. 다른 사진으로 다시 올려 주세요.',
+    refused: 'AI가 이 사진은 분석하지 않았어요. 옷만 나오게 다시 찍어 주세요.',
+    invalid_json: 'AI 답을 읽지 못했어요. 다시 올리거나 직접 골라 주세요.',
+    cancelled: '분석을 취소했어요.',
+  };
+  const aiErrorText = e => AI_ERRORS[e && e.code] || 'AI 분석이 잠시 안 돼요. 종류와 모양을 직접 골라 주세요.';
+
+  // Shrink the photo for the model, keep a tiny thumbnail for the sheet, and read the centre colour as a fallback.
+  async function prepPhoto(file) {
     const url = URL.createObjectURL(file);
     try {
       const img = await loadImg(url);
-      const s = Math.min(1, 640 / Math.max(img.naturalWidth, img.naturalHeight));
-      const c = document.createElement('canvas');
-      c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      return c.toDataURL('image/jpeg', .88);
+      const draw = (max, q) => {
+        const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        return c;
+      };
+      const big = draw(1024);
+      const blob = await new Promise(res => big.toBlob(res, 'image/jpeg', .85));
+      const thumb = draw(112).toDataURL('image/jpeg', .7);
+      const ctx = big.getContext('2d', { willReadFrequently: true });
+      const x0 = Math.floor(big.width * .3), y0 = Math.floor(big.height * .3);
+      const d = ctx.getImageData(x0, y0, Math.max(1, Math.floor(big.width * .4)), Math.max(1, Math.floor(big.height * .4))).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < d.length; i += 16) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+      const color = '#' + [r, g, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join('');
+      return { blob, thumb, color };
     } finally { URL.revokeObjectURL(url); }
   }
-
-  // Flood-fill the background in from the photo's edges, using the corners' colour as the background.
-  async function cutout(src, tol) {
-    const img = await loadImg(src);
-    const w = img.naturalWidth, h = img.naturalHeight;
-    const c = document.createElement('canvas'); c.width = w; c.height = h;
-    const ctx = c.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0);
-    const im = ctx.getImageData(0, 0, w, h), d = im.data;
-    if (tol <= 0) return { src: c.toDataURL('image/png'), aw: w, ah: h, color: avgColor(d) };
-    let r = 0, g = 0, b = 0, n = 0;
-    const k = Math.max(2, Math.round(Math.min(w, h) * .03));
-    for (const [cx, cy] of [[0, 0], [w - k, 0], [0, h - k], [w - k, h - k]])
-      for (let y = cy; y < cy + k; y++) for (let x = cx; x < cx + k; x++) { const i = (y * w + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
-    r /= n; g /= n; b /= n;
-    const t2 = tol * tol;
-    const near = p => { const i = p * 4, dr = d[i] - r, dg = d[i + 1] - g, db = d[i + 2] - b; return dr * dr + dg * dg + db * db < t2; };
-    const seen = new Uint8Array(w * h), q = new Int32Array(w * h);
-    let head = 0, tail = 0;
-    const push = p => { if (!seen[p] && near(p)) { seen[p] = 1; q[tail++] = p; } };
-    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
-    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
-    while (head < tail) {
-      const p = q[head++], x = p % w;
-      if (x > 0) push(p - 1);
-      if (x < w - 1) push(p + 1);
-      if (p >= w) push(p - w);
-      if (p < w * (h - 1)) push(p + w);
-    }
-    let x0 = w, y0 = h, x1 = -1, y1 = -1;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const p = y * w + x;
-      if (seen[p]) { d[p * 4 + 3] = 0; continue; }
-      if ((x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) || (y > 0 && seen[p - w]) || (y < h - 1 && seen[p + w])) d[p * 4 + 3] = 150;
-      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
-    }
-    if (x1 < 0) return { src: c.toDataURL('image/png'), aw: w, ah: h, color: avgColor(ctx.getImageData(0, 0, w, h).data) };
-    const color = avgColor(d);
-    ctx.putImageData(im, 0, 0);
-    const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
-    const o = document.createElement('canvas'); o.width = cw; o.height = ch;
-    o.getContext('2d').drawImage(c, x0, y0, cw, ch, 0, 0, cw, ch);
-    return { src: o.toDataURL('image/png'), aw: cw, ah: ch, color };
-  }
-
-  // Average colour of the pixels that are still visible.
-  function avgColor(d) {
-    let r = 0, g = 0, b = 0, n = 0;
-    for (let i = 0; i < d.length; i += 16) if (d[i + 3] > 200) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
-    if (!n) return '#808080';
-    return '#' + [r, g, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join('');
-  }
   const colorFields = color => { const name = colorNameOf(color); return { color, colorName: name, base: BASE_NAMES.includes(name) }; };
+  const isHex = v => /^#[0-9a-f]{6}$/i.test(String(v || ''));
+  const clamp3 = v => Math.min(3, Math.max(1, Math.round(Number(v) || 2)));
+
+  // Take what the model said, keep only what fits the app, and leave the rest of the draft alone.
+  function applyAnalysis(draft, r) {
+    if (!r || typeof r !== 'object') return '답을 읽지 못했어요. 직접 골라 주세요.';
+    if (r.category === 'none') return (r.note && String(r.note).slice(0, 80)) || '옷이 보이지 않아요. 옷만 나오게 다시 찍어 주세요.';
+    if (TAB_ORDER.includes(r.category)) draft.cat = r.category;
+    if (SHAPE_INFO[r.shape] && SHAPE_INFO[r.shape].cat === draft.cat) draft.shape = r.shape; else draft.shape = shapesOf(draft.cat)[0];
+    if (isHex(r.color)) draft.color = r.color.toLowerCase();
+    draft.pattern = ['solid', 'stripe', 'check', 'dots'].includes(r.pattern) ? r.pattern : 'solid';
+    if (draft.pattern !== 'solid') draft.color2 = isHex(r.color2) ? r.color2.toLowerCase() : shade(draft.color, -.4);
+    draft.warm = clamp3(r.warm); draft.form = clamp3(r.form);
+    if (typeof r.name === 'string' && r.name.trim()) draft.name = r.name.trim().slice(0, 24);
+    const conf = Number(r.confidence);
+    const sure = conf >= .75 ? '' : conf >= .4 ? ' 확신은 보통이에요. 아래에서 고쳐 주세요.' : ' 잘 모르겠대요. 아래에서 꼭 확인해 주세요.';
+    return ((r.note && String(r.note).slice(0, 80)) || `${SHAPE_INFO[draft.shape].label}로 보여요.`) + sure;
+  }
+
+  // ----- the sheet -----
+  const sheet = { draft: null, mode: 'new', editing: null, token: 0 };
+  const shColor2Field = $('sh-color2-field');
+  function openSheet(draft, mode, editing) {
+    sheet.draft = draft; sheet.mode = mode; sheet.editing = editing || null; sheet.token++;
+    $('sheet-title').textContent = mode === 'new' ? '이 옷이 맞나요?' : '옷 정보 고치기';
+    $('sh-ok').textContent = mode === 'new' ? '옷장에 넣기' : '저장';
+    $('sh-delete').hidden = mode !== 'edit';
+    disarmDelete();
+    $('sh-photo-wrap').hidden = !draft.thumb;
+    if (draft.thumb) $('sh-photo').src = draft.thumb;
+    $('sh-cat').innerHTML = TAB_ORDER.map(c => `<option value="${c}">${LABEL[c]}</option>`).join('');
+    fillSheet();
+    $('sheet-bg').hidden = false;
+    $('sh-name').focus();
+  }
+  function closeSheet() { $('sheet-bg').hidden = true; sheet.draft = null; sheet.token++; }
+  function setAI(html, busy) { $('sh-ai').innerHTML = (busy ? '<span class="spin" aria-hidden="true"></span>' : '') + html; }
+  function fillSheet() {
+    const d = sheet.draft;
+    $('sh-name').value = d.name || '';
+    $('sh-cat').value = d.cat;
+    $('sh-shape').innerHTML = shapesOf(d.cat).map(k => `<option value="${k}">${SHAPE_INFO[k].label}</option>`).join('');
+    if (!shapesOf(d.cat).includes(d.shape)) d.shape = shapesOf(d.cat)[0];
+    $('sh-shape').value = d.shape;
+    $('sh-color').value = d.color;
+    $('sh-pattern').value = d.pattern || 'solid';
+    $('sh-color2').value = d.color2 || shade(d.color, -.4);
+    shColor2Field.hidden = (d.pattern || 'solid') === 'solid';
+    $('sh-warm').value = d.warm; $('sh-form').value = d.form;
+    renderSheetPreview();
+  }
+  function renderSheetPreview() {
+    const d = { ...sheet.draft, id: 'sh' };
+    const svg = $('sh-preview');
+    svg.setAttribute('viewBox', cropOf(d));
+    svg.innerHTML = `<defs>${patternDef(d)}</defs>${garmentSVG(d)}`;
+  }
+  function readSheet() {
+    const d = sheet.draft;
+    d.name = $('sh-name').value.trim().slice(0, 24);
+    if ($('sh-cat').value !== d.cat) { d.cat = $('sh-cat').value; d.shape = shapesOf(d.cat)[0]; $('sh-shape').innerHTML = shapesOf(d.cat).map(k => `<option value="${k}">${SHAPE_INFO[k].label}</option>`).join(''); $('sh-shape').value = d.shape; }
+    else d.shape = $('sh-shape').value;
+    d.color = $('sh-color').value;
+    d.pattern = $('sh-pattern').value;
+    d.color2 = d.pattern === 'solid' ? null : $('sh-color2').value;
+    shColor2Field.hidden = d.pattern === 'solid';
+    d.warm = +$('sh-warm').value; d.form = +$('sh-form').value;
+    renderSheetPreview();
+  }
+  for (const id of ['sh-name', 'sh-cat', 'sh-shape', 'sh-color', 'sh-pattern', 'sh-color2', 'sh-warm', 'sh-form']) $(id).addEventListener('input', readSheet);
+
+  function commitSheet() {
+    readSheet();
+    const d = sheet.draft;
+    const item = { cat: d.cat, shape: d.shape, name: d.name || SHAPE_INFO[d.shape].label, pattern: d.pattern, color2: d.color2, warm: d.warm, form: d.form, thumb: d.thumb || null, ai: !!d.ai, ...colorFields(d.color) };
+    if (sheet.mode === 'edit') {
+      const u = sheet.editing, oldCat = u.cat;
+      Object.assign(u, item);
+      if (oldCat !== u.cat) {
+        if (state.sel[oldCat] === u.id) state.sel[oldCat] = oldCat === 'outer' ? null : BUILTIN.find(i => i.cat === oldCat).id;
+        for (const c of state.combos) if (c.sel[oldCat] === u.id) c.sel[oldCat] = null;
+      }
+      state.sel[u.cat] = u.id; state.tab = u.cat;
+      toast(`${josa(u.name, '을', '를')} 고쳤어요.`);
+    } else {
+      const u = { id: 'u' + Date.now().toString(36), ...item };
+      state.uploads.push(u);
+      state.sel[u.cat] = u.id; state.tab = u.cat;
+      if (covers(u)) state.sel.bottom = null;
+      toast(`${josa(u.name, '을', '를')} 옷장에 넣었어요.`);
+    }
+    closeSheet();
+    renderAll(); save();
+  }
+
+  $('sh-ok').addEventListener('click', commitSheet);
+  $('sh-cancel').addEventListener('click', closeSheet);
+  $('sheet-bg').addEventListener('click', e => { if (e.target === e.currentTarget) closeSheet(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('sheet-bg').hidden) closeSheet(); });
+
+  let armTimer;
+  function disarmDelete() { clearTimeout(armTimer); const b = $('sh-delete'); b.dataset.armed = ''; b.textContent = '이 옷 삭제'; }
+  $('sh-delete').addEventListener('click', e => {
+    const b = e.currentTarget, u = sheet.editing; if (!u) return;
+    if (!b.dataset.armed) {
+      b.dataset.armed = '1'; b.textContent = '한 번 더 누르면 삭제돼요';
+      clearTimeout(armTimer); armTimer = setTimeout(disarmDelete, 3000);
+      return;
+    }
+    state.uploads = state.uploads.filter(x => x.id !== u.id);
+    if (state.sel[u.cat] === u.id) state.sel[u.cat] = u.cat === 'outer' ? null : BUILTIN.find(i => i.cat === u.cat).id;
+    for (const c of state.combos) if (c.sel[u.cat] === u.id) c.sel[u.cat] = null;
+    closeSheet();
+    renderAll(); save();
+    toast(`${josa(u.name, '을', '를')} 옷장에서 뺐어요.`);
+  });
+
+  $('btn-edit').addEventListener('click', () => {
+    const u = activeUpload(); if (!u) return;
+    openSheet({ cat: u.cat, shape: u.shape, name: u.name, color: u.color, pattern: u.pattern || 'solid', color2: u.color2 || null, warm: u.warm, form: u.form, thumb: u.thumb || null, ai: u.ai }, 'edit', u);
+    setAI(u.ai ? '처음에 AI가 읽은 옷이에요. 틀린 부분을 고쳐 주세요.' : '직접 입력한 옷이에요.');
+  });
 
   // ---------- events ----------
   $('tabs').addEventListener('click', e => {
@@ -812,6 +989,9 @@
     const t = e.target.closest('button.tile');
     if (!t) return;
     state.sel[state.tab] = t.dataset.id || null;
+    if (state.tab === 'top' && covers(byId(state.sel.top))) state.sel.bottom = null;
+    if (state.tab === 'bottom' && state.sel.bottom && covers(byId(state.sel.top))) state.sel.top = BUILTIN.find(i => i.cat === 'top').id;
+    if (state.tab === 'bottom' && !state.sel.bottom) state.sel.bottom = BUILTIN.find(i => i.cat === 'bottom').id;
     renderStage(); renderOutfit(); renderCloset(); save();
   });
 
@@ -819,89 +999,28 @@
     const input = e.target, file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
-    toast('배경을 지우는 중이에요…', true);
+    let p;
+    try { p = await prepPhoto(file); }
+    catch (err) { toast('이 사진을 열지 못했어요. JPG나 PNG 사진으로 다시 올려 주세요.'); return; }
+    const cat = state.tab;
+    const draft = { cat, shape: shapesOf(cat)[0], name: '', color: p.color, pattern: 'solid', color2: null, warm: 2, form: 2, thumb: p.thumb, ai: false };
+    openSheet(draft, 'new');
+    if (!aiAvailable()) { setAI(AI_ERRORS.unavailable); return; }
+    const token = sheet.token;
+    setAI('AI가 사진을 보는 중이에요… 5~20초쯤 걸려요.', true);
+    let note;
     try {
-      const orig = await prepOriginal(file);
-      const tol = 40;
-      const r = await cutout(orig, tol);
-      const cat = state.tab, box = BOX[cat];
-      const n = state.uploads.filter(u => u.cat === cat).length + 1;
-      const u = { id: 'u' + Date.now().toString(36), cat, name: `내 ${LABEL[cat]} ${n}`, src: r.src, orig, aw: r.aw, ah: r.ah, tol, s: 1, cx: box.x + box.w / 2, cy: box.y + box.h / 2, warm: 2, form: 2, ...colorFields(r.color) };
-      state.uploads.push(u);
-      state.sel[cat] = u.id;
-      renderAll(); save();
-      toast(`옷장에 넣었어요. ${r.color ? colorNameOf(r.color) + ' 계열로 알아봤어요. ' : ''}두께와 느낌을 고르면 추천이 더 정확해져요.`);
+      const r = await analyzePhoto(p.blob);
+      if (sheet.token !== token) return;
+      note = applyAnalysis(draft, r);
+      draft.ai = r && r.category !== 'none';
+      fillSheet();
     } catch (err) {
-      toast('이 사진을 열지 못했어요. JPG나 PNG 사진으로 다시 올려 주세요.');
+      if (sheet.token !== token) return;
+      note = aiErrorText(err);
     }
+    setAI(`<b>AI 판단</b>${esc(note)}`);
   });
-
-  function syncUploadEl(u) {
-    const g = geom(u);
-    for (const el of [stage.querySelector(`[data-up="${u.id}"]`), $('up-outline')]) {
-      if (!el) continue;
-      el.setAttribute('x', g.x); el.setAttribute('y', g.y); el.setAttribute('width', g.w); el.setAttribute('height', g.h);
-    }
-  }
-
-  $('adj-size').addEventListener('input', e => {
-    const u = activeUpload(); if (!u) return;
-    u.s = e.target.value / 100;
-    $('adj-size-out').textContent = `${e.target.value}%`;
-    syncUploadEl(u);
-  });
-  $('adj-size').addEventListener('change', () => { renderCombos(); save(); });
-
-  $('adj-tol').addEventListener('input', e => { $('adj-tol-out').textContent = +e.target.value === 0 ? '끔' : e.target.value; });
-  $('adj-tol').addEventListener('change', async e => {
-    const u = activeUpload(); if (!u) return;
-    toast('배경을 다시 지우는 중이에요…', true);
-    const r = await cutout(u.orig, +e.target.value);
-    Object.assign(u, { src: r.src, aw: r.aw, ah: r.ah, tol: +e.target.value }, colorFields(r.color));
-    renderAll(); save();
-    toast('배경 지우기를 다시 적용했어요.');
-  });
-
-  let armTimer;
-  function disarmDelete() { clearTimeout(armTimer); const b = $('adj-del'); b.dataset.armed = ''; b.textContent = '이 옷 삭제'; }
-  $('adj-del').addEventListener('click', e => {
-    const b = e.currentTarget, u = activeUpload(); if (!u) return;
-    if (!b.dataset.armed) {
-      b.dataset.armed = '1'; b.textContent = '한 번 더 누르면 삭제돼요';
-      clearTimeout(armTimer); armTimer = setTimeout(disarmDelete, 3000);
-      return;
-    }
-    state.uploads = state.uploads.filter(x => x.id !== u.id);
-    const first = BUILTIN.find(i => i.cat === u.cat);
-    state.sel[u.cat] = u.cat === 'outer' ? null : first.id;
-    for (const c of state.combos) if (c.sel[u.cat] === u.id) c.sel[u.cat] = null;
-    renderAll(); save();
-    toast(`${u.name}을 옷장에서 뺐어요.`);
-  });
-
-  // Drag an uploaded photo on the mannequin.
-  let drag = null;
-  const toSvg = e => { const pt = stage.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(stage.getScreenCTM().inverse()); };
-  stage.addEventListener('pointerdown', e => {
-    const t = e.target.closest('[data-up]');
-    if (!t) return;
-    const u = byId(t.dataset.up);
-    if (!u) return;
-    if (state.tab !== u.cat) { state.tab = u.cat; renderCloset(); renderStage(); }
-    drag = { u, p0: toSvg(e), c0: { cx: u.cx, cy: u.cy } };
-    stage.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  });
-  stage.addEventListener('pointermove', e => {
-    if (!drag) return;
-    const p = toSvg(e);
-    drag.u.cx = drag.c0.cx + p.x - drag.p0.x;
-    drag.u.cy = drag.c0.cy + p.y - drag.p0.y;
-    syncUploadEl(drag.u);
-  });
-  const endDrag = () => { if (!drag) return; drag = null; renderCombos(); save(); };
-  stage.addEventListener('pointerup', endDrag);
-  stage.addEventListener('pointercancel', endDrag);
 
   $('btn-rec').addEventListener('click', () => {
     recommend();
@@ -947,14 +1066,6 @@
     save();
   });
 
-  for (const [id, field] of [['adj-warm', 'warm'], ['adj-form', 'form']]) {
-    $(id).addEventListener('change', e => {
-      const u = activeUpload(); if (!u) return;
-      u[field] = +e.target.value;
-      save();
-    });
-  }
-
   $('btn-save').addEventListener('click', () => {
     const same = state.combos.find(c => SUMMARY_ORDER.every(k => (c.sel[k] || null) === (state.sel[k] || null)));
     if (same) { toast('이미 저장한 조합이에요.'); return; }
@@ -981,14 +1092,16 @@
 
   $('today-date').textContent = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
   buildDefs();
-  // Photos saved before colour detection existed get sensible defaults.
-  for (const u of state.uploads) {
-    if (!u.warm) u.warm = 2;
-    if (!u.form) u.form = 2;
+  // Photos cut out by the old method have no garment information, so they are dropped.
+  const dropped = state.uploads.filter(u => u.src || !SHAPE_INFO[u.shape]).map(u => u.id);
+  if (dropped.length) {
+    state.uploads = state.uploads.filter(u => !dropped.includes(u.id));
+    for (const c of SUMMARY_ORDER) if (dropped.includes(state.sel[c])) state.sel[c] = c === 'outer' ? null : BUILTIN.find(i => i.cat === c).id;
+    for (const cb of state.combos) for (const c of SUMMARY_ORDER) if (dropped.includes(cb.sel[c])) cb.sel[c] = null;
+    setTimeout(() => toast(`예전 방식으로 올린 사진 ${dropped.length}장은 뺐어요. 다시 올리면 AI가 그림으로 바꿔 줘요.`), 400);
   }
-  Promise.all(state.uploads.filter(u => !u.colorName).map(async u => {
-    try { const r = await cutout(u.src, 0); Object.assign(u, colorFields(r.color)); } catch (e) { Object.assign(u, colorFields('#808080')); }
-  })).then(() => { if (state.uploads.length) { renderCloset(); save(); } });
+  for (const u of state.uploads) { u.pattern = u.pattern || 'solid'; if (!u.warm) u.warm = 2; if (!u.form) u.form = 2; }
+  if (!state.sel.bottom && !covers(byId(state.sel.top))) state.sel.bottom = BUILTIN.find(i => i.cat === 'bottom').id;
   if (!saved) recommend();
   renderAll();
 })();
