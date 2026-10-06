@@ -109,6 +109,9 @@
   .btn.danger { color: var(--danger); flex: 0 0 auto; justify-self: start; }
   .btn:focus-visible, .tile:focus-visible, .tab:focus-visible, .combo:focus-visible, .combo-del:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: .84rem; color: var(--muted); }
+  .toggle input { accent-color: var(--accent); margin: 0; }
+  .toggle .c { font-size: .76rem; }
   .tabs { display: flex; gap: 4px; background: var(--stage); padding: 4px; border-radius: 12px; overflow-x: auto; }
   .tab { flex: 1 0 auto; font: inherit; border: 0; background: transparent; color: var(--muted); padding: 8px 12px; border-radius: 9px; cursor: pointer; display: flex; gap: 6px; align-items: baseline; justify-content: center; }
   .tab[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .10); }
@@ -237,6 +240,7 @@
 
     <section class="closet" aria-label="옷장">
       <div class="tabs" role="tablist" id="tabs"></div>
+      <label class="toggle"><input type="checkbox" id="show-ex"> 예시 옷도 보기 <span class="c">(내 옷이 없는 종류에는 항상 보여요)</span></label>
       <div class="grid" id="grid"></div>
       <div class="edit-row" id="edit-row" hidden>
         <span id="edit-name"></span>
@@ -319,6 +323,15 @@
     { id: 'sneakers', cat: 'shoes', shape: 'sneaker', name: '스니커즈', colorName: '화이트', color: '#F6F6F3', warm: 2, form: 1, base: true },
     { id: 'loafer', cat: 'shoes', shape: 'loafer', name: '페니 로퍼', colorName: '블랙', color: '#222225', warm: 2, form: 3, base: true },
     { id: 'boots', cat: 'shoes', shape: 'boots', name: '첼시 부츠', colorName: '브라운', color: '#6B4732', warm: 3, form: 2, base: true },
+  ];
+
+  // 내 옷장: 사진을 보고 적어 넣은 옷이에요. base = 어디에나 받쳐 입기 쉬운 기본색.
+  const MINE = [
+    { id: 'my-tee-stripe', cat: 'top', shape: 'tee', name: '버건디 스트라이프 반팔티', colorName: '그레이 + 버건디 줄무늬', color: '#8b8084', pattern: 'stripe', color2: '#7b3a4b', warm: 1, form: 1, base: false },
+    { id: 'my-jean-dark', cat: 'bottom', shape: 'jeans', name: '다크 워시 와이드 데님', colorName: '다크 블루', color: '#4d5a68', warm: 2, form: 1, base: true, denim: true },
+    { id: 'my-jean-mid', cat: 'bottom', shape: 'jeans', name: '중청 와이드 데님', colorName: '중청', color: '#3d5478', warm: 2, form: 1, base: true, denim: true },
+    { id: 'my-jean-light', cat: 'bottom', shape: 'jeans', name: '연청 스트레이트 데님', colorName: '연청', color: '#9db0c6', warm: 2, form: 1, base: true, denim: true },
+    { id: 'my-coat-check', cat: 'outer', shape: 'coat', name: '글렌체크 울 코트', colorName: '브라운 그레이 체크', color: '#8a7f78', pattern: 'check', color2: '#5c524d', warm: 3, form: 3, base: true },
   ];
 
   const WEATHER = [
@@ -507,13 +520,13 @@
       <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
     let html = layerShadow('lay-top', 1.6, 1.2, .35) + layerShadow('lay-outer', 2.6, 2, .5);
     html += '<pattern id="rib" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="1.4" height="4" fill="#000" fill-opacity=".14"/></pattern>';
-    for (const it of allItems()) html += patternDef(it);
+    for (const it of everyItem()) html += patternDef(it);
     document.getElementById('defs').innerHTML = html;
   }
 
   // ---------- state ----------
   const DEFAULT = {
-    sel: { top: 'tee-stripe', bottom: 'jean', outer: 'coat', shoes: 'sneakers' },
+    sel: { top: 'my-tee-stripe', bottom: 'my-jean-mid', outer: 'my-coat-check', shoes: 'sneakers' },
     uploads: [],
     combos: [
       { id: 'ex1', ex: true, sel: { top: 'shirt-blue', bottom: 'slacks', outer: null, shoes: 'loafer' } },
@@ -530,14 +543,18 @@
     } catch (e) { return null; }
   }
   const saved = load();
-  const state = Object.assign({ tab: 'top', weather: defaultWeather(), body: 'm', skin: { depth: 0, tone: 'unknown' }, rec: null }, saved || JSON.parse(JSON.stringify(DEFAULT)));
+  const state = Object.assign({ tab: 'top', weather: defaultWeather(), body: 'm', skin: { depth: 0, tone: 'unknown' }, showExamples: false, rec: null }, saved || JSON.parse(JSON.stringify(DEFAULT)));
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ sel: state.sel, uploads: state.uploads, combos: state.combos, weather: state.weather, body: state.body, skin: state.skin, rec: state.rec })); }
+    try { localStorage.setItem(KEY, JSON.stringify({ sel: state.sel, uploads: state.uploads, combos: state.combos, weather: state.weather, body: state.body, skin: state.skin, showExamples: state.showExamples, rec: state.rec })); }
     catch (e) { toast('이 기기에 저장하지 못했어요. 새로고침하면 바뀐 내용이 사라질 수 있어요.'); }
   }
 
-  const allItems = () => BUILTIN.concat(state.uploads);
-  const byId = id => id ? allItems().find(i => i.id === id) : null;
+  // Example pieces stay only in the kinds where I own nothing yet (so the recommender always has shoes etc.),
+  // unless "예시 옷도 보기" is on.
+  const haveOwn = cat => MINE.concat(state.uploads).some(i => i.cat === cat);
+  const everyItem = () => BUILTIN.concat(MINE, state.uploads);
+  const allItems = () => (state.showExamples ? BUILTIN : BUILTIN.filter(i => !haveOwn(i.cat))).concat(MINE, state.uploads);
+  const byId = id => id ? everyItem().find(i => i.id === id) : null;
   const itemsOf = cat => allItems().filter(i => i.cat === cat);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -557,6 +574,7 @@
     return fitBody(svg, state.body);
   }
   const isMine = it => !!it && state.uploads.includes(it);
+  const isOwn = it => !!it && (MINE.includes(it) || state.uploads.includes(it));
   const activeUpload = () => { const it = byId(state.sel[state.tab]); return isMine(it) ? it : null; };
 
   // ---------- recommendation ----------
@@ -730,13 +748,14 @@
   function tileHTML(it) {
     const pressed = state.sel[it.cat] === it.id;
     const thumb = `<svg viewBox="${cropOf(it)}" aria-hidden="true">${garmentSVG(it)}</svg>`;
-    const tag = `<span class="tag"><i style="background:${it.color}"></i>${isMine(it) ? '내 옷 · ' : ''}${esc(it.colorName)}</span>`;
+    const tag = `<span class="tag"><i style="background:${it.color}"></i>${isOwn(it) ? '내 옷 · ' : '예시 · '}${esc(it.colorName)}</span>`;
     const fit = (it.cat === 'top' || it.cat === 'outer') && state.skin.tone !== 'unknown' && state.skin.tone !== 'neutral' && toneFit(it) > .3
       ? `<span class="fit">${TONE_NAMES[state.skin.tone]} 추천</span>` : '';
     return `<button type="button" class="tile" data-id="${it.id}" aria-pressed="${pressed}">${fit}<span class="thumb">${thumb}</span><span class="tname">${esc(it.name)}</span>${tag}</button>`;
   }
 
   function renderCloset() {
+    $('show-ex').checked = !!state.showExamples;
     $('tabs').innerHTML = TAB_ORDER.map(c =>
       `<button type="button" class="tab" role="tab" data-tab="${c}" aria-selected="${state.tab === c}">${LABEL[c]}<span class="n">${itemsOf(c).length}</span></button>`
     ).join('');
@@ -803,7 +822,7 @@
     ready: 'AI 분석: 켜짐 (이 페이지가 Claude에게 사진을 보여줘요)',
     maybe: 'AI 분석: 연결됨. 이 화면이 사진 전송을 지원하는지는 올려 봐야 알 수 있어요.',
     'no-images': 'AI 분석: 이 화면에서는 Claude에게 사진을 보낼 수 없어요. 분석 서버를 켜면 어디서나 돼요.',
-    'no-runtime': ANALYZE_URL ? 'AI 분석: 켜짐 (분석 서버 연결)' : 'AI 분석: 이 링크에서는 꺼져 있어요. claude.ai 미리보기 링크에서 올리거나 분석 서버를 켜 주세요.',
+    'no-runtime': ANALYZE_URL ? 'AI 분석: 켜짐 (분석 서버 연결)' : 'AI 분석: 이 링크에서는 꺼져 있어요. 새 옷 사진은 Claude 대화로 보내 주면 옷장에 넣어 줘요.',
   };
   function renderAiStatus() { const el = $('ai-status'); if (el) el.textContent = AI_STATUS[aiState]; }
 
@@ -832,7 +851,7 @@
     throw { code: 'unavailable' };
   }
   const AI_ERRORS = {
-    unavailable: '이 링크에서는 AI 분석이 꺼져 있어서 색만 읽었어요. claude.ai 미리보기 링크에서 올리면 AI가 읽어 주고, 여기서는 종류와 모양을 직접 골라 주세요.',
+    unavailable: '이 링크에서는 AI 분석이 꺼져 있어서 색만 읽었어요. 종류와 모양을 직접 고르거나, 사진을 Claude 대화로 보내 주세요.',
     images_unavailable: '이 claude.ai 화면은 아직 페이지가 Claude에게 사진을 보내는 걸 지원하지 않아요. 분석 서버(worker 설명서)를 켜면 어디서나 되고, 지금은 종류와 모양을 직접 골라 주세요.',
     not_granted: 'AI 사용을 허용하지 않아서 색만 읽었어요. 종류와 모양을 직접 골라 주세요.',
     sampling_disabled: '이 계정에서는 AI 분석을 쓸 수 없어요. 종류와 모양을 직접 골라 주세요.',
@@ -993,6 +1012,12 @@
   });
 
   // ---------- events ----------
+  $('show-ex').addEventListener('change', e => {
+    state.showExamples = e.target.checked;
+    ranking = null;
+    renderCloset(); save();
+  });
+
   $('tabs').addEventListener('click', e => {
     const t = e.target.closest('[data-tab]');
     if (!t) return;
