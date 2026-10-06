@@ -157,6 +157,7 @@
   .sheet-actions .btn { flex: 0 1 auto; }
   .sheet-actions .btn.danger { margin-right: auto; }
   .tip { margin: 0; font-size: .82rem; color: var(--muted); max-width: 62ch; }
+  .ai-status { font-family: var(--f-mono); font-size: .74rem; }
 
   .saved h2 { font-family: var(--f-display); font-weight: 400; font-size: 1.35rem; margin: 0 0 10px; }
   .combos { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
@@ -242,6 +243,7 @@
         <button type="button" id="btn-edit" class="btn">이 옷 수정</button>
       </div>
       <p class="tip">사진을 올리면 AI가 옷의 종류와 색을 읽어서 마네킹용 그림으로 바꿔요. 옷 전체가 보이게 밝은 곳에서 찍으면 잘 알아봐요. 사진 원본은 저장하지 않아요.</p>
+      <p class="tip ai-status" id="ai-status" aria-live="polite"></p>
     </section>
   </main>
 
@@ -781,17 +783,26 @@
   const ANALYZE_URL = '';
   const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
 
-  let sampleFn = null;
-  (async () => {
+  // Finding out whether this view can ask Claude takes a few seconds; uploads wait for the answer.
+  let sampleFn = null, aiState = 'pending';
+  const sampleReady = (async () => {
     try {
-      if (!window.claude || typeof window.claude.use !== 'function') return;
+      if (!window.claude || typeof window.claude.use !== 'function') { aiState = 'no-runtime'; return; }
       const fn = await window.claude.use('sample');
-      if (!fn) return;
+      if (!fn) { aiState = 'no-runtime'; return; }
       const lim = await fn.limits().catch(() => null);
-      if (lim && lim.images) sampleFn = fn;
-    } catch (e) { /* no viewer runtime: the page works without it */ }
+      if (lim && lim.images) { sampleFn = fn; aiState = 'ready'; } else aiState = 'no-images';
+    } catch (e) { aiState = 'no-runtime'; }
+    renderAiStatus();
   })();
   const aiAvailable = () => !!(sampleFn || ANALYZE_URL);
+  const AI_STATUS = {
+    pending: 'AI 분석: 연결 확인 중…',
+    ready: 'AI 분석: 켜짐 (이 페이지가 Claude에게 사진을 보여줘요)',
+    'no-images': 'AI 분석: 이 앱에서는 사진을 보낼 수 없어요. Chrome이나 Safari에서 같은 링크를 열어 주세요.',
+    'no-runtime': ANALYZE_URL ? 'AI 분석: 켜짐 (분석 서버 연결)' : 'AI 분석: 이 링크에서는 꺼져 있어요. claude.ai 미리보기 링크에서 올리거나 분석 서버를 켜 주세요.',
+  };
+  function renderAiStatus() { const el = $('ai-status'); if (el) el.textContent = AI_STATUS[aiState]; }
 
   const VISION_PROMPT = `사진에 찍힌 옷(또는 신발) 한 가지를 보고 JSON 객체 하나로만 답하세요. 설명 문장은 쓰지 마세요.
 필드:
@@ -818,7 +829,8 @@
     throw { code: 'unavailable' };
   }
   const AI_ERRORS = {
-    unavailable: '이 화면에서는 AI 분석을 쓸 수 없어서 색만 읽었어요. 종류와 모양을 직접 골라 주세요.',
+    unavailable: '이 링크에서는 AI 분석이 꺼져 있어서 색만 읽었어요. claude.ai 미리보기 링크에서 올리면 AI가 읽어 주고, 여기서는 종류와 모양을 직접 골라 주세요.',
+    'no-images': '이 앱에서는 Claude에게 사진을 보낼 수 없어요. Chrome이나 Safari에서 같은 링크를 열어 다시 올려 주세요. 지금은 직접 골라 주세요.',
     not_granted: 'AI 사용을 허용하지 않아서 색만 읽었어요. 종류와 모양을 직접 골라 주세요.',
     sampling_disabled: '이 계정에서는 AI 분석을 쓸 수 없어요. 종류와 모양을 직접 골라 주세요.',
     rate_limited: '요청이 많아서 잠시 쉬어야 해요. 지금은 직접 고르거나, 잠시 후 다시 올려 주세요.',
@@ -1005,9 +1017,12 @@
     const cat = state.tab;
     const draft = { cat, shape: shapesOf(cat)[0], name: '', color: p.color, pattern: 'solid', color2: null, warm: 2, form: 2, thumb: p.thumb, ai: false };
     openSheet(draft, 'new');
-    if (!aiAvailable()) { setAI(AI_ERRORS.unavailable); return; }
     const token = sheet.token;
-    setAI('AI가 사진을 보는 중이에요… 5~20초쯤 걸려요.', true);
+    setAI('AI 연결을 확인하는 중이에요…', true);
+    await sampleReady;
+    if (sheet.token !== token) return;
+    if (!aiAvailable()) { setAI(AI_ERRORS[aiState === 'no-images' ? 'no-images' : 'unavailable']); return; }
+    setAI('AI가 사진을 보는 중이에요… 5~20초쯤 걸려요. 처음이면 허용할지 묻는 창이 떠요.', true);
     let note;
     try {
       const r = await analyzePhoto(p.blob);
@@ -1092,6 +1107,7 @@
 
   $('today-date').textContent = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
   buildDefs();
+  renderAiStatus();
   // Photos cut out by the old method have no garment information, so they are dropped.
   const dropped = state.uploads.filter(u => u.src || !SHAPE_INFO[u.shape]).map(u => u.id);
   if (dropped.length) {
