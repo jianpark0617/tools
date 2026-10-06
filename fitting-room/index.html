@@ -616,13 +616,14 @@
   // pressing the button again walks down the ranking.
   function weatherCost(o, w) {
     const ow = o.outer ? o.outer.warm : 0, t = o.top.warm, b = o.bottom ? o.bottom.warm : o.top.warm, s = o.shoes.warm;
-    if (w === 'hot') return ow * 3 + Math.max(0, t - 1) * 2 + Math.max(0, b - 1) * 1.5 + (s >= 3 ? 3 : 0);
+    if (w === 'hot') return ow * 3 + Math.max(0, t - 1) * 2 + Math.max(0, b - 2) * 3 + (s >= 3 ? 3 : 0);
     if (w === 'mild') return (ow >= 3 ? 3 : 0) + (t >= 3 ? (ow ? 2.5 : .5) : 0) + (b <= 1 ? 1.5 : 0) + (s >= 3 ? 1 : 0);
     if (w === 'chilly') return (ow === 0 ? 4 : 0) + (t <= 1 ? 1.5 : 0) + (b <= 1 ? 4 : 0);
     return (ow === 0 ? 6 : ow < 3 ? 2 : 0) + (t <= 1 ? 3 : t === 2 ? 1 : 0) + (b <= 1 ? 6 : 0) + (s < 3 ? .5 : 0);
   }
   const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
 
+  const busy = it => patterned(it) || !!it.sleeve; // patterned, or colour-blocked like a varsity jacket
   function analyse(o) {
     const worn = [o.outer, o.top, o.bottom, o.shoes].filter(Boolean);
     const accents = worn.filter(i => !i.base);
@@ -630,8 +631,12 @@
     const spread = Math.max(...forms) - Math.min(...forms);
     const avgForm = forms.reduce((a, b) => a + b, 0) / forms.length;
     const contrast = o.bottom ? Math.abs(hsl(o.top.color).l - hsl(o.bottom.color).l) : .3;
-    const close = accents.length === 2 && hueGap(hsl(accents[0].color).h, hsl(accents[1].color).h) < 35;
-    return { accents, spread, avgForm, contrast, close, denimTwice: !!(o.outer && o.outer.denim && o.bottom && o.bottom.denim) };
+    const gap = accents.length === 2 ? hueGap(hsl(accents[0].color).h, hsl(accents[1].color).h) : 0;
+    const close = accents.length === 2 && gap < 35;
+    // Two saturated accents across the colour wheel fight each other (red with green, orange with blue).
+    const clash = accents.length === 2 && gap > 140 && accents.every(i => hsl(i.color).s > .3);
+    const busyFace = faceItems(o).filter(busy);
+    return { accents, spread, avgForm, contrast, close, clash, busyFace, denimTwice: !!(o.outer && o.outer.denim && o.bottom && o.bottom.denim) };
   }
 
   // How warm (+1, yellow-based) or cool (-1, blue-based) a colour reads next to the face.
@@ -663,13 +668,31 @@
     const a = analyse(o);
     let v = -weatherCost(o, w) * 1.4;
     v += a.accents.length === 0 ? 1.6 : a.accents.length === 1 ? 2 : a.accents.length === 2 ? (a.close ? 1 : -3) : -5;
-    v -= Math.max(0, a.spread - 1) * 1.5;
+    v -= Math.max(0, a.spread - 1) * .8;
     if (a.contrast >= .3) v += .8; else if (a.contrast < .08) v -= 1;
     if (a.denimTwice) v -= 2.5;
+    if (a.busyFace.length >= 2) v -= 3;
+    if (a.clash) v -= 2;
     // Personal colour: what sits near the face matters most (the top, then the outer layer over it).
     if (state.skin.tone !== 'unknown') v += 1.6 * toneFit(o.top) + (o.outer ? 1.2 * toneFit(o.outer) : 0);
     for (const it of faceItems(o)) if (nearSkin(it)) v -= 1.5;
-    return v + Math.random() * .6;
+    return v;
+  }
+
+  // What is wrong with a combination, in words. Used when nothing is good enough to recommend.
+  function flaws(o, w) {
+    const out = [], a = analyse(o);
+    const wc = weatherCost(o, w);
+    if (wc >= 2) out.push(w === 'hot' || w === 'mild' ? '날씨에 비해 덥게 입는 조합이에요' : '날씨에 비해 춥게 입는 조합이에요');
+    if (a.busyFace.length >= 2) out.push(`${a.busyFace.map(i => i.name).join('과 ')}처럼 무늬·배색 옷이 겹쳐서 산만해요`);
+    if (a.accents.length >= 2 && !a.close) out.push(`${a.accents.map(i => i.colorName).join(', ')}처럼 포인트 색이 여럿이라 정신없어요`);
+    if (a.clash) out.push('보색끼리 부딪혀요');
+    if (a.denimTwice) out.push('청청 조합이에요');
+    if (a.contrast < .08) out.push('상의와 하의 밝기가 비슷해서 밋밋해요');
+    if (a.spread >= 2) out.push('편한 옷과 단정한 옷이 섞여서 어색해요');
+    const tone = state.skin.tone;
+    if (tone !== 'unknown') for (const i of faceItems(o)) if (toneFit(i) < -.3) out.push(`${i.colorName}은(는) ${TONE_NAMES[tone]}과 반대 계열이에요`);
+    return out;
   }
 
   function reasons(o, w) {
@@ -702,24 +725,30 @@
     return out.slice(0, 4);
   }
 
-  let ranking = null; // { key, list, i }
+  // Only combinations above this bar are offered. Everything else is better left in the closet.
+  const RECOMMEND_BAR = 1.5;
+  let ranking = null; // { key, list, best, i }
   function buildRanking() {
     const outers = [null, ...itemsOf('outer')];
-    const list = [];
+    const all = [];
     // On the 남성 mannequin, pieces marked as womenswear stay in the closet but are left out of recommendations.
     const bottoms = itemsOf('bottom').filter(i => state.body === 'f' || !i.womens);
     for (const top of itemsOf('top')) for (const bottom of (covers(top) ? [null] : bottoms)) for (const shoes of itemsOf('shoes')) for (const outer of outers) {
       const o = { top, bottom, shoes, outer };
-      list.push({ o, v: score(o, state.weather) });
+      all.push({ o, v: score(o, state.weather) });
     }
-    list.sort((x, y) => y.v - x.v);
-    // Keep the shortlist varied: each pick differs from the ones before it in at least two pieces.
+    all.sort((x, y) => y.v - x.v);
+    // Keep the shortlist varied: each pick differs from the ones before it in at least two pieces. No backfilling.
     const differ = (x, y) => ['top', 'bottom', 'shoes', 'outer'].filter(k => x.o[k] !== y.o[k]).length;
-    const picked = [];
-    for (const x of list) { if (picked.every(y => differ(x, y) >= 2)) picked.push(x); if (picked.length === 6) break; }
-    for (const x of list) { if (picked.length === 6) break; if (!picked.includes(x)) picked.push(x); }
-    return picked;
+    const list = [];
+    for (const x of all) {
+      if (x.v < RECOMMEND_BAR) break;
+      if (list.every(y => differ(x, y) >= 2 && (x.o.top !== y.o.top || x.o.outer !== y.o.outer))) list.push(x);
+      if (list.length === 6) break;
+    }
+    return { list, best: all[0] || null };
   }
+  if (location.protocol === 'file:') window.__rank = buildRanking; // local testing only
   const selOf = o => ({ top: o.top.id, bottom: o.bottom ? o.bottom.id : null, outer: o.outer ? o.outer.id : null, shoes: o.shoes.id });
   const sameSel = (a, b) => SUMMARY_ORDER.every(k => (a[k] || null) === (b[k] || null));
   const closetKey = () => state.weather + '|' + state.body + '|' + state.skin.depth + state.skin.tone + '|' + allItems().map(i => `${i.id}:${i.warm}:${i.form}:${i.color}`).join(',');
@@ -727,7 +756,16 @@
   function recommend() {
     if (!['top', 'bottom', 'shoes'].every(c => itemsOf(c).length)) { toast('상의, 하의, 신발이 하나씩은 있어야 추천할 수 있어요.'); return; }
     const key = closetKey();
-    if (!ranking || ranking.key !== key) ranking = { key, list: buildRanking(), i: -1 };
+    if (!ranking || ranking.key !== key) ranking = { key, ...buildRanking(), i: -1 };
+    if (!ranking.list.length) {
+      // Nothing clears the bar: say so, and say what the closest combination gets wrong.
+      const b = ranking.best;
+      const names = b ? [b.o.outer, b.o.top, b.o.bottom].filter(Boolean).map(i => i.name).join(' + ') : '';
+      const why = b ? flaws(b.o, state.weather) : [];
+      state.rec = { none: true, sel: { ...state.sel }, rank: 0, total: 0,
+        reasons: ['지금 옷장으로는 오늘 날씨에 자신 있게 추천할 조합이 없어요.', b ? `가장 가까운 건 ${names}인데, ${why.length ? why.join('. ') : '점수가 아슬아슬해요'}.` : ''].filter(Boolean) };
+      return;
+    }
     // Skip the outfit already on the mannequin so the button always changes something.
     do { ranking.i = (ranking.i + 1) % ranking.list.length; }
     while (ranking.list.length > 1 && sameSel(selOf(ranking.list[ranking.i].o), state.sel));
@@ -735,7 +773,6 @@
     state.sel = selOf(pickd.o);
     state.rec = { sel: { ...state.sel }, reasons: reasons(pickd.o, state.weather), rank: ranking.i + 1, total: ranking.list.length };
   }
-
   // ---------- rendering ----------
   const $ = id => document.getElementById(id);
   const stage = $('stage');
@@ -758,9 +795,10 @@
   function renderWhy() {
     const r = state.rec, show = !!(r && sameSel(r.sel, state.sel));
     $('why').hidden = !show;
-    $('btn-rec').textContent = r && show ? '다른 추천' : '추천 코디';
+    $('btn-rec').textContent = r && show && !r.none ? '다른 추천' : '추천 코디';
     if (!show) return;
-    $('why-rank').textContent = `추천 ${r.rank} / ${r.total}`;
+    $('why').querySelector('strong').textContent = r.none ? '오늘은 추천 없음' : '추천 이유';
+    $('why-rank').textContent = r.none ? '' : `추천 ${r.rank} / ${r.total}`;
     $('why-list').innerHTML = r.reasons.map(t => `<li>${esc(t)}</li>`).join('');
   }
 
