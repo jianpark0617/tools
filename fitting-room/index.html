@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="옷 사진을 마네킹에 입혀 보고, 날씨와 피부 톤에 맞는 코디를 추천받는 아침 옷 고르기 도우미.">
+<meta name="apple-mobile-web-app-title" content="아침 피팅룸">
+<title>아침 피팅룸</title>
+<style>
+  /* Page basics: safe-area padding for phones, no default margins, [hidden] always wins. */
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+  /* Layout: a fitting-room stage on the left (mannequin + worn layers), the closet on the right; stacks on phones */
+  :root {
+    --bg: #ECEEF1;
+    --panel: #FFFFFF;
+    --stage: #F4F5F7;
+    --ink: #18202B;
+    --muted: #5D6775;
+    --line: #D4D9E0;
+    --accent: #1F6F68;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #DCEDEA;
+    --mannequin: #DDD4C7;
+    --floor: rgba(24, 32, 43, .10);
+    --seam: rgba(18, 22, 28, .42);
+    --danger: #B3261E;
+    --f-display: "Do Hyeon", "IBM Plex Sans KR", system-ui, sans-serif;
+    --f-body: "IBM Plex Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11151B; --panel: #1A2028; --stage: #151A21; --ink: #E6EAF0; --muted: #9AA4B1;
+      --line: #2C3440; --accent: #5BBFB3; --accent-ink: #0D1A18; --accent-soft: #1D3835; --mannequin: #6A6258;
+      --floor: rgba(0, 0, 0, .40); --seam: rgba(0, 0, 0, .55); --danger: #F2867E;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11151B; --panel: #1A2028; --stage: #151A21; --ink: #E6EAF0; --muted: #9AA4B1;
+    --line: #2C3440; --accent: #5BBFB3; --accent-ink: #0D1A18; --accent-soft: #1D3835; --mannequin: #6A6258;
+    --floor: rgba(0, 0, 0, .40); --seam: rgba(0, 0, 0, .55); --danger: #F2867E;
+    color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 56px; display: grid; gap: 20px; }
+
+  header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  h1 { font-family: var(--f-display); font-weight: 400; font-size: 2.1rem; line-height: 1.1; margin: 0; text-wrap: balance; }
+  .sub { margin: 6px 0 0; color: var(--muted); }
+  .today { display: flex; gap: 8px; align-items: center; font-family: var(--f-mono); font-size: .85rem; color: var(--muted); }
+  .pill { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-family: var(--f-body); font-size: .78rem; }
+
+  .app { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 780px) { .app { grid-template-columns: minmax(0, 1fr); } }
+
+  .stage-panel, .closet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+  .stage { background: var(--stage); border-radius: 12px; display: flex; justify-content: center; padding-block: 12px; }
+  #stage { height: min(64vh, 560px); width: auto; max-width: 100%; display: block; }
+  #stage.has-up { touch-action: none; }
+  #stage image.drag { cursor: grab; }
+
+  .outfit { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; font-size: .92rem; }
+  .outfit dt { color: var(--muted); font-size: .78rem; letter-spacing: .04em; padding-top: 2px; }
+  .outfit dd { margin: 0; }
+  .outfit .c { color: var(--muted); }
+
+  .profile { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 28px; }
+  .pgroup { display: grid; gap: 6px; }
+  .pgroup .wl b { font-weight: 500; color: var(--ink); margin-left: 4px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sw { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--seam); cursor: pointer; padding: 0; }
+  .sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+  .sw.base { background: var(--mannequin); border-style: dashed; }
+  .sw:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .tone-help { flex: 1 1 100%; font-size: .84rem; color: var(--muted); }
+  .tone-help summary { cursor: pointer; color: var(--accent); width: fit-content; }
+  .tone-help ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; max-width: 72ch; }
+  .fit { position: absolute; top: 12px; left: 12px; font-size: .68rem; background: var(--panel); color: var(--accent); border: 1px solid var(--accent); padding: 0 6px; border-radius: 999px; }
+  .seg { display: inline-flex; background: var(--stage); border-radius: 10px; padding: 3px; gap: 2px; }
+  .seg button { font: inherit; font-size: .86rem; border: 0; background: transparent; color: var(--muted); padding: 5px 16px; border-radius: 8px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .10); }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .weather { display: grid; gap: 6px; }
+  .wl { font-size: .78rem; color: var(--muted); letter-spacing: .04em; }
+  .chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .chip { font: inherit; font-size: .88rem; padding: 7px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); cursor: pointer; display: grid; text-align: center; line-height: 1.3; }
+  .chip small { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .why { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: .88rem; display: grid; gap: 4px; }
+  .why[hidden] { display: none; }
+  .why-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .why-head span { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .why ul { margin: 0; padding-left: 18px; }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { font: inherit; font-size: .92rem; padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; flex: 1 1 auto; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 500; }
+  .btn.danger { color: var(--danger); flex: 0 0 auto; justify-self: start; }
+  .btn:focus-visible, .tile:focus-visible, .tab:focus-visible, .combo:focus-visible, .combo-del:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .tabs { display: flex; gap: 4px; background: var(--stage); padding: 4px; border-radius: 12px; overflow-x: auto; }
+  .tab { flex: 1 0 auto; font: inherit; border: 0; background: transparent; color: var(--muted); padding: 8px 12px; border-radius: 9px; cursor: pointer; display: flex; gap: 6px; align-items: baseline; justify-content: center; }
+  .tab[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .10); }
+  .tab .n { font-family: var(--f-mono); font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+  .tile { font: inherit; color: inherit; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: grid; gap: 4px; align-content: start; cursor: pointer; position: relative; }
+  .tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .tile[aria-pressed="true"]::after { content: "입는 중"; position: absolute; top: 12px; right: 12px; font-size: .68rem; background: var(--accent); color: var(--accent-ink); padding: 1px 7px; border-radius: 999px; }
+  .thumb { aspect-ratio: 1; max-width: 100%; background: var(--stage); border-radius: 8px; display: grid; place-items: center; overflow: hidden; margin-bottom: 2px; }
+  .thumb svg, .thumb img { width: 84%; height: 84%; object-fit: contain; }
+  .thumb .none { font-family: var(--f-display); font-size: 1.4rem; color: var(--muted); }
+  .tname { font-size: .86rem; line-height: 1.3; }
+  .tag { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--muted); }
+  .tag i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--seam); display: inline-block; flex: none; }
+  .add .thumb { border: 1.5px dashed var(--line); background: transparent; font-size: 1.8rem; color: var(--muted); }
+  .add:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .adjust { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 10px; }
+  .adjust[hidden] { display: none; }
+  .adjust-head { display: grid; gap: 2px; }
+  .adjust-head span { font-size: .82rem; color: var(--muted); }
+  .adjust label { display: flex; justify-content: space-between; font-size: .85rem; color: var(--muted); }
+  .adjust output { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .adj-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .field { display: grid; gap: 4px; }
+  .field[hidden] { display: none; }
+  select { font: inherit; font-size: .9rem; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+  .tip { margin: 0; font-size: .82rem; color: var(--muted); max-width: 62ch; }
+
+  .saved h2 { font-family: var(--f-display); font-weight: 400; font-size: 1.35rem; margin: 0 0 10px; }
+  .combos { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .combo-wrap { position: relative; flex: 0 0 auto; }
+  .combo { font: inherit; width: 100px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px; cursor: pointer; display: grid; gap: 4px; color: var(--ink); }
+  .combo svg { width: 100%; height: 150px; background: var(--stage); border-radius: 8px; display: block; }
+  .combo span { font-size: .72rem; color: var(--muted); text-align: center; font-family: var(--f-mono); }
+  .combo-del { position: absolute; top: 2px; right: 2px; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; }
+  .empty { color: var(--muted); font-size: .88rem; margin: 0; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 16px); max-width: calc(100% - 32px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: .88rem; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<svg class="defs" aria-hidden="true" focusable="false"><defs id="defs"></defs></svg>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>아침 피팅룸</h1>
+      <p class="sub">갈아입어 보기 전에 마네킹에 먼저 입혀 보세요.</p>
+    </div>
+    <div class="today"><span id="today-date"></span><span class="pill">v0.1</span></div>
+  </header>
+
+  <section class="profile" aria-label="내 체형과 피부">
+    <div class="pgroup">
+      <span id="body-label" class="wl">체형</span>
+      <div class="seg" id="body" role="group" aria-labelledby="body-label">
+        <button type="button" data-body="f" aria-pressed="false">여성</button>
+        <button type="button" data-body="m" aria-pressed="false">남성</button>
+      </div>
+    </div>
+    <div class="pgroup">
+      <span id="skin-label" class="wl">피부색 <b id="skin-name"></b></span>
+      <div class="swatches" id="skin" role="group" aria-labelledby="skin-label"></div>
+    </div>
+    <div class="pgroup">
+      <span id="tone-label" class="wl">피부 톤</span>
+      <div class="seg" id="tone" role="group" aria-labelledby="tone-label">
+        <button type="button" data-tone="warm" aria-pressed="false">웜톤</button>
+        <button type="button" data-tone="neutral" aria-pressed="false">뉴트럴</button>
+        <button type="button" data-tone="cool" aria-pressed="false">쿨톤</button>
+        <button type="button" data-tone="unknown" aria-pressed="false">모름</button>
+      </div>
+    </div>
+    <details class="tone-help">
+      <summary>웜톤·쿨톤을 모르겠다면</summary>
+      <ul>
+        <li>자연광에서 손목 안쪽 혈관이 초록빛이면 웜톤, 파랗거나 보랏빛이면 쿨톤에 가까워요. 둘 다 섞여 보이면 뉴트럴이에요.</li>
+        <li>금 액세서리가 잘 받으면 웜톤, 은 액세서리가 잘 받으면 쿨톤일 가능성이 높아요.</li>
+        <li>햇볕에 타면 금방 갈색이 되면 웜톤, 빨갛게 익었다가 돌아오면 쿨톤인 경우가 많아요.</li>
+        <li>확실하지 않으면 "모름"으로 두세요. 그때는 피부와 너무 비슷한 색만 피해서 추천해요.</li>
+      </ul>
+    </details>
+  </section>
+
+  <main class="app">
+    <section class="stage-panel" aria-label="착용 예상도">
+      <div class="stage"><svg id="stage" viewBox="0 0 300 640" role="img" aria-label="마네킹 착용 예상도"></svg></div>
+      <dl class="outfit" id="outfit"></dl>
+      <div class="why" id="why" hidden>
+        <div class="why-head"><strong>추천 이유</strong><span id="why-rank"></span></div>
+        <ul id="why-list"></ul>
+      </div>
+      <div class="weather" role="group" aria-labelledby="weather-label">
+        <span id="weather-label" class="wl">오늘 날씨</span>
+        <div class="chips" id="weather"></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="btn-rec" class="btn">추천 코디</button>
+        <button type="button" id="btn-save" class="btn primary">이 조합 저장</button>
+      </div>
+    </section>
+
+    <section class="closet" aria-label="옷장">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="grid" id="grid"></div>
+      <div class="adjust" id="adjust" hidden>
+        <div class="adjust-head"><strong id="adj-name"></strong><span>마네킹 위의 사진을 끌어서 위치를 맞추세요.</span></div>
+        <label for="adj-size">크기 <output id="adj-size-out" for="adj-size"></output></label>
+        <input type="range" id="adj-size" min="40" max="180" step="1" value="100">
+        <label for="adj-tol">배경 지우기 <output id="adj-tol-out" for="adj-tol"></output></label>
+        <input type="range" id="adj-tol" min="0" max="120" step="2" value="40">
+        <div class="adj-meta">
+          <div class="field" id="adj-warm-field">
+            <label for="adj-warm">두께</label>
+            <select id="adj-warm"><option value="1">얇음</option><option value="2">보통</option><option value="3">두꺼움</option></select>
+          </div>
+          <div class="field">
+            <label for="adj-form">느낌</label>
+            <select id="adj-form"><option value="1">편한</option><option value="2">무난한</option><option value="3">단정한</option></select>
+          </div>
+        </div>
+        <button type="button" id="adj-del" class="btn danger">이 옷 삭제</button>
+      </div>
+      <p class="tip">옷 사진은 밝은 단색 바닥에 펼쳐 놓고 위에서 찍으면 배경이 깔끔하게 지워져요. 올린 사진은 이 기기에만 저장돼요.</p>
+    </section>
+  </main>
+
+  <section class="saved" aria-label="저장한 조합">
+    <h2>저장한 조합</h2>
+    <div class="combos" id="combos"></div>
+  </section>
+</div>
+
+<input type="file" id="file-input" class="vh" accept="image/*">
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const KEY = 'morning-fitting-room-v1';
+  const LABEL = { top: '상의', bottom: '하의', outer: '아우터', shoes: '신발' };
+  const TAB_ORDER = ['top', 'bottom', 'outer', 'shoes'];
+  const LAYER_ORDER = ['shoes', 'bottom', 'top', 'outer'];
+  const SUMMARY_ORDER = ['outer', 'top', 'bottom', 'shoes'];
+  // Thumbnail crop for each category, in stage coordinates.
+  const CROP = { top: '52 98 196 256', bottom: '70 258 160 362', outer: '50 100 200 390', shoes: '88 540 124 88' };
+  // Where an uploaded photo lands on the mannequin before the user moves it.
+  const BOX = {
+    top: { x: 62, y: 104, w: 176, h: 215 },
+    bottom: { x: 96, y: 262, w: 108, h: 350 },
+    outer: { x: 56, y: 104, w: 188, h: 380 },
+    shoes: { x: 96, y: 592, w: 108, h: 34 },
+  };
+
+  // warm: 1 얇음 · 2 보통 · 3 두꺼움, form: 1 편한 · 2 무난한 · 3 단정한, base: 어디에나 어울리는 기본색
+  const BUILTIN = [
+    { id: 'tee-white', cat: 'top', shape: 'tee', name: '반팔 티셔츠', colorName: '화이트', color: '#F3F2EE', warm: 1, form: 1, base: true },
+    { id: 'tee-stripe', cat: 'top', shape: 'long', name: '스트라이프 긴팔티', colorName: '네이비 줄무늬', color: '#F3F2EE', stripe: '#26365E', warm: 2, form: 1, base: true },
+    { id: 'shirt-blue', cat: 'top', shape: 'shirt', name: '옥스포드 셔츠', colorName: '스카이 블루', color: '#A8C3E0', warm: 2, form: 3 },
+    { id: 'knit-oat', cat: 'top', shape: 'knit', name: '라운드 니트', colorName: '오트밀', color: '#D9C9AA', warm: 3, form: 2, base: true },
+    { id: 'jean', cat: 'bottom', shape: 'jeans', name: '스트레이트 데님', colorName: '인디고', color: '#33507A', warm: 2, form: 1, base: true, denim: true },
+    { id: 'slacks', cat: 'bottom', shape: 'slacks', name: '와이드 슬랙스', colorName: '차콜', color: '#3D4248', warm: 2, form: 3, base: true },
+    { id: 'shorts', cat: 'bottom', shape: 'shorts', name: '치노 반바지', colorName: '베이지', color: '#C9B58F', warm: 1, form: 1, base: true },
+    { id: 'skirt', cat: 'bottom', shape: 'skirt', name: '플리츠 스커트', colorName: '버건디', color: '#6E3A47', warm: 2, form: 2, womens: true },
+    { id: 'coat', cat: 'outer', shape: 'coat', name: '싱글 코트', colorName: '카멜', color: '#B88955', warm: 3, form: 3, base: true },
+    { id: 'denim-jk', cat: 'outer', shape: 'jacket', name: '데님 자켓', colorName: '라이트 블루', color: '#86A6CB', warm: 2, form: 1, base: true, denim: true },
+    { id: 'sneakers', cat: 'shoes', shape: 'sneaker', name: '스니커즈', colorName: '화이트', color: '#F6F6F3', warm: 2, form: 1, base: true },
+    { id: 'loafer', cat: 'shoes', shape: 'loafer', name: '페니 로퍼', colorName: '블랙', color: '#222225', warm: 2, form: 3, base: true },
+    { id: 'boots', cat: 'shoes', shape: 'boots', name: '첼시 부츠', colorName: '브라운', color: '#6B4732', warm: 3, form: 2, base: true },
+  ];
+
+  const WEATHER = [
+    { k: 'hot', label: '더움', range: '23°↑' },
+    { k: 'mild', label: '선선', range: '15–22°' },
+    { k: 'chilly', label: '쌀쌀', range: '8–14°' },
+    { k: 'cold', label: '추움', range: '7°↓' },
+  ];
+  function defaultWeather() {
+    const m = new Date().getMonth() + 1;
+    if (m >= 6 && m <= 8) return 'hot';
+    if (m === 5 || m === 9 || m === 10) return 'mild';
+    if (m === 4 || m === 11) return 'chilly';
+    return 'cold';
+  }
+
+  // ---------- colour ----------
+  function hsl(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+    if (!d) return { h: 0, s: 0, l };
+    const s = d / (1 - Math.abs(2 * l - 1));
+    let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+    return { h, s, l };
+  }
+  const BASE_NAMES = ['흰색', '검정', '회색', '밝은 회색', '차콜', '베이지', '카멜', '갈색', '남색', '카키'];
+  function colorNameOf(hex) {
+    const { h, s, l } = hsl(hex);
+    if (l > .88) return '흰색';
+    if (l < .16) return '검정';
+    if (s < .15) return l > .62 ? '밝은 회색' : l > .35 ? '회색' : '차콜';
+    if (h >= 345 || h < 15) return l > .72 ? '분홍' : l < .35 ? '버건디' : '빨강';
+    if (h < 45) return l < .38 ? '갈색' : (s < .55 && l > .55) ? '베이지' : s > .7 ? '주황' : '카멜';
+    if (h < 70) return '노랑';
+    if (h < 165) return (l < .35 && s < .45) ? '카키' : '초록';
+    if (h < 200) return '청록';
+    if (h < 250) return l < .35 ? '남색' : l > .65 ? '하늘' : '파랑';
+    if (h < 300) return '보라';
+    return '분홍';
+  }
+  const josa = (word, withBatchim, without) => {
+    const ch = String(word).trim().slice(-1), c = ch.charCodeAt(0);
+    const has = c >= 0xAC00 && c <= 0xD7A3 ? (c - 0xAC00) % 28 > 0 : /[0-9]/.test(ch) ? '013678'.includes(ch) : false;
+    return word + (has ? withBatchim : without);
+  };
+
+  // ---------- drawing ----------
+  // Mirror a left-half path across the mannequin's centre line (x = 150).
+  const M = d => d.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (_, x, y) => `${+(300 - x).toFixed(1)},${y}`);
+  const P = (d, fill, extra = '') => `<path d="${d}" fill="${fill}" stroke="var(--seam)" stroke-width="1.2" stroke-linejoin="round" ${extra}/>`;
+  const L = (d, op = .35, extra = '') => `<path d="${d}" fill="none" stroke="var(--seam)" stroke-width="1.1" stroke-opacity="${op}" stroke-linecap="round" ${extra}/>`;
+  const both = (d, fill, extra) => P(d, fill, extra) + P(M(d), fill, extra);
+  const bothL = (d, op, extra) => L(d, op, extra) + L(M(d), op, extra);
+  const fillOf = it => it.stripe ? `url(#pat-${it.id})` : it.color;
+
+  const TORSO = 'M118,114 C104,116 94,122 92,138 L98,200 C102,232 110,252 112,275 C108,300 100,320 100,345 L200,345 C200,320 192,300 188,275 C190,252 198,232 202,200 L208,138 C206,122 196,116 182,114 Z';
+  const ARM_L = 'M94,124 C82,130 78,150 78,172 L70,328 C68,344 70,358 77,362 C85,363 88,352 88,340 L100,196 Z';
+  const LEG_L = 'M101,335 C99,400 108,450 112,482 C114,522 116,568 118,604 L138,604 C139,568 141,522 142,482 C146,440 149,400 150,362 L150,335 Z';
+  // Skin swatches from lightest to deepest, each with a warm (yellow), neutral and cool (pink) undertone.
+  const SKIN = {
+    warm: ['#F6DDC4', '#EBC6A1', '#D9A979', '#B98353', '#8E5B33', '#5E3A22'],
+    neutral: ['#F3D9C9', '#E8C2A6', '#D4A684', '#B5805E', '#8A5A3E', '#5B3A2A'],
+    cool: ['#F2D6D0', '#E6BFAF', '#D0A28F', '#AE7C68', '#845749', '#563733'],
+  };
+  const SKIN_NAMES = ['아주 밝음', '밝음', '중간 밝음', '중간', '어두움', '아주 어두움'];
+  const TONE_NAMES = { warm: '웜톤', neutral: '뉴트럴', cool: '쿨톤' };
+  const skinHex = () => state.skin.depth ? SKIN[state.skin.tone === 'unknown' ? 'neutral' : state.skin.tone][state.skin.depth - 1] : null;
+
+  const HEAD = { m: { rx: 27, ry: 33, neck: 22 }, f: { rx: 25, ry: 31, neck: 18 } };
+  const mannequinSVG = body => { const h = HEAD[body]; return `<g fill="${skinHex() || 'var(--mannequin)'}">
+    <ellipse cx="150" cy="${93 - h.ry}" rx="${h.rx}" ry="${h.ry}"/>
+    <rect x="${150 - h.neck / 2}" y="86" width="${h.neck}" height="32" rx="6"/>
+    <path d="${TORSO}"/><path d="${ARM_L}"/><path d="${M(ARM_L)}"/><path d="${LEG_L}"/><path d="${M(LEG_L)}"/>
+    <ellipse cx="127" cy="610" rx="15" ry="8"/><ellipse cx="173" cy="610" rx="15" ry="8"/>
+  </g>`; };
+
+  // The drawings are made for the 남성 mannequin. For 여성 every path is reshaped sideways:
+  // narrower shoulders and waist, fuller hips. Points inside the torso scale by K; points outside it
+  // (arms, sleeves, coat hems) move with the torso edge, so the arms keep hanging naturally.
+  const BODY_K = [[100, 1], [126, .84], [200, .85], [275, .76], [345, 1.1], [420, 1.04], [520, 1]];
+  const BODY_R = [[100, 26], [126, 58], [150, 57], [200, 52], [275, 38], [345, 50], [420, 40], [600, 26]];
+  const lerpTable = (t, y) => {
+    if (y <= t[0][0]) return t[0][1];
+    for (let i = 1; i < t.length; i++) if (y <= t[i][0]) { const [y0, v0] = t[i - 1], [y1, v1] = t[i]; return v0 + (v1 - v0) * (y - y0) / (y1 - y0); }
+    return t[t.length - 1][1];
+  };
+  function warpX(x, y) {
+    const dx = x - 150, r = Math.abs(dx), R = lerpTable(BODY_R, y), k = lerpTable(BODY_K, y);
+    return 150 + Math.sign(dx) * (r <= R ? r * k : R * k + (r - R));
+  }
+  const fitBody = (svg, body) => body === 'm' ? svg : svg.replace(/ d="([^"]+)"/g, (_, d) =>
+    ` d="${d.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (__, x, y) => `${+warpX(+x, +y).toFixed(1)},${y}`)}"`);
+
+  // Darken (f < 0) or lighten (f > 0) a hex colour.
+  const shade = (hex, f) => '#' + [1, 3, 5].map(i => {
+    const v = parseInt(hex.slice(i, i + 2), 16);
+    return Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f).toString(16).padStart(2, '0');
+  }).join('');
+  const FLOOR = '<ellipse cx="150" cy="624" rx="72" ry="9" fill="var(--floor)"/>';
+
+  const TEE = 'M124,110 Q150,126 176,110 L210,120 Q224,140 232,190 L204,200 L202,186 L202,302 Q150,310 98,302 L98,186 L96,200 L68,190 Q76,140 90,120 Z';
+  const LONG = 'M124,110 Q150,126 176,110 L210,120 Q228,138 226,176 L234,340 L212,346 L202,200 L202,305 Q150,313 98,305 L98,200 L88,346 L66,340 L74,176 Q72,138 90,120 Z';
+  const SHIRT = 'M128,108 L150,132 L172,108 L210,120 Q228,138 226,176 L234,340 L212,346 L202,200 L202,300 Q192,318 150,312 Q108,318 98,300 L98,200 L88,346 L66,340 L74,176 Q72,138 90,120 Z';
+  const SHIRT_COLLAR = it => both('M128,108 L150,132 L141,138 L121,115 Z', it.color) + both('M128,108 L150,132', 'none');
+  const TOPSTITCH = 'stroke="#E0B062" stroke-dasharray="2.5 2" stroke-opacity=".9"';
+
+  const SHAPES = {
+    tee: it => P(TEE, fillOf(it)) + L('M124,110 Q150,126 176,110', .6) + bothL('M71,183 L97,192', .3),
+    long: it => P(LONG, fillOf(it)) + L('M124,110 Q150,126 176,110', .6) + bothL('M67,330 L89,335', .35),
+    shirt: it => P(SHIRT, it.color) + SHIRT_COLLAR(it)
+      + L('M150,132 L150,312', .4) + [152, 176, 200, 224, 248, 272].map(y => `<circle cx="153" cy="${y}" r="1.7" fill="var(--seam)"/>`).join('')
+      + bothL('M67,328 L90,333', .35),
+    knit: it => P(LONG, it.color) + P('M98,292 L202,292 L202,305 Q150,313 98,305 Z', 'url(#rib)', 'stroke="none"')
+      + L('M98,292 L202,292', .35) + P('M122,110 Q150,130 178,110 L176,104 Q150,122 124,104 Z', it.color)
+      + P('M122,110 Q150,130 178,110 L176,104 Q150,122 124,104 Z', 'url(#rib)', 'stroke="none"')
+      + both('M67,326 L90,331 L88,346 L66,340 Z', 'url(#rib)', 'stroke="none"') + bothL('M67,326 L90,331', .35),
+    jeans: it => P('M106,266 L194,266 L199,340 C197,420 192,500 190,606 L161,606 L152,372 L148,372 L139,606 L110,606 C108,500 103,420 101,340 Z', it.color)
+      + L('M106,277 L194,277', .5) + L('M150,277 L150,322 Q150,332 142,336', .5, TOPSTITCH)
+      + bothL('M114,277 Q118,298 104,304', .5, TOPSTITCH) + bothL('M111,598 L139,598', .5, TOPSTITCH),
+    slacks: it => P('M106,266 L194,266 L200,340 L196,608 L160,608 L151,370 L149,370 L140,608 L104,608 L100,340 Z', it.color)
+      + L('M106,277 L194,277', .45) + L('M150,277 L150,330', .4) + bothL('M123,292 L122,604', .3),
+    shorts: it => P('M106,266 L194,266 L202,340 L208,412 L156,416 L151,372 L149,372 L144,416 L92,412 L98,340 Z', it.color)
+      + L('M106,277 L194,277', .45) + L('M150,277 L150,330', .4) + bothL('M93,402 L144,406', .35),
+    skirt: it => P('M110,266 L190,266 L224,472 Q150,484 76,472 Z', it.color) + L('M110,278 L190,278', .5)
+      + [-3, -2, -1, 0, 1, 2, 3].map(i => L(`M${150 + i * 11},279 L${150 + i * 20},${478 - Math.abs(i) * 1.6}`, .3)).join(''),
+    coat: it => both('M124,106 L138,152 L144,482 L86,482 Q94,330 96,200 L89,119 Z', it.color)
+      + both('M89,116 Q71,123 67,176 L59,334 L94,338 L101,200 Q102,136 89,116 Z', it.color)
+      + both('M126,108 L106,130 L114,136 L140,184 L138,152 Z', shade(it.color, -.12))
+      + bothL('M138,152 L144,481', 1, `stroke="${shade(it.color, -.35)}" stroke-width="2.4"`)
+      + bothL('M100,374 L132,374', .45) + bothL('M60,320 L94,324', .4),
+    jacket: it => both('M124,106 L138,152 L142,292 L94,292 Q96,250 97,200 L89,119 Z', it.color)
+      + both('M89,116 Q73,123 69,176 L61,332 L93,336 L101,200 Q102,136 89,116 Z', it.color)
+      + both('M126,108 L106,120 L118,146 L138,152 Z', shade(it.color, -.12))
+      + both('M106,178 L132,178 L130,190 L108,190 Z', it.color)
+      + bothL('M138,152 L142,291', 1, `stroke="${shade(it.color, -.35)}" stroke-width="2.2"`)
+      + bothL('M95,280 L142,280', .9, TOPSTITCH) + bothL('M62,320 L93,324', .9, TOPSTITCH) + bothL('M136,156 L138,288', .9, TOPSTITCH),
+    sneaker: it => both('M106,598 L138,598 Q144,602 144,612 L144,620 L102,620 Q95,620 96,612 Q98,602 106,598 Z', it.color)
+      + bothL('M97,615 L144,615', .5) + bothL('M116,603 L130,603', .4),
+    loafer: it => both('M104,603 Q112,599 138,600 Q144,604 144,612 L144,620 L102,620 Q95,620 96,613 Q97,606 104,603 Z', it.color)
+      + bothL('M112,607 L134,607', .6),
+    boots: it => both('M110,552 L141,552 L143,612 L143,620 L102,620 Q95,620 96,612 Q100,604 110,598 Z', it.color)
+      + both('M114,560 L122,560 L122,590 L114,590 Z', 'var(--seam)', 'fill-opacity=".45" stroke="none"') + bothL('M97,616 L143,616', .5),
+  };
+
+  function buildDefs() {
+    // Soft shadows that each layer casts on the one under it.
+    const layerShadow = (id, blur, dy, alpha) => `<filter id="${id}" x="-20%" y="-10%" width="140%" height="125%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="${blur}" result="b"/><feOffset in="b" dy="${dy}" result="o"/>
+      <feComponentTransfer in="o" result="s"><feFuncA type="linear" slope="${alpha}"/></feComponentTransfer>
+      <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+    let html = layerShadow('lay-top', 1.6, 1.2, .35) + layerShadow('lay-outer', 2.6, 2, .5);
+    html += '<pattern id="rib" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="1.4" height="4" fill="#000" fill-opacity=".14"/></pattern>';
+    for (const it of BUILTIN) if (it.stripe) {
+      html += `<pattern id="pat-${it.id}" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="${it.color}"/><rect y="7" width="12" height="4" fill="${it.stripe}"/></pattern>`;
+    }
+    document.getElementById('defs').innerHTML = html;
+  }
+
+  // ---------- state ----------
+  const DEFAULT = {
+    sel: { top: 'tee-stripe', bottom: 'jean', outer: 'coat', shoes: 'sneakers' },
+    uploads: [],
+    combos: [
+      { id: 'ex1', ex: true, sel: { top: 'shirt-blue', bottom: 'slacks', outer: null, shoes: 'loafer' } },
+      { id: 'ex2', ex: true, sel: { top: 'knit-oat', bottom: 'skirt', outer: 'denim-jk', shoes: 'boots' } },
+    ],
+  };
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      if (!s || !s.sel || !Array.isArray(s.uploads) || !Array.isArray(s.combos)) return null;
+      return s;
+    } catch (e) { return null; }
+  }
+  const saved = load();
+  const state = Object.assign({ tab: 'top', weather: defaultWeather(), body: 'm', skin: { depth: 0, tone: 'unknown' }, rec: null }, saved || JSON.parse(JSON.stringify(DEFAULT)));
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ sel: state.sel, uploads: state.uploads, combos: state.combos, weather: state.weather, body: state.body, skin: state.skin, rec: state.rec })); }
+    catch (e) { toast('사진 용량이 커서 이 기기에 저장하지 못했어요. 새로고침하면 올린 사진이 사라져요.'); }
+  }
+
+  const allItems = () => BUILTIN.concat(state.uploads);
+  const byId = id => id ? allItems().find(i => i.id === id) : null;
+  const itemsOf = cat => allItems().filter(i => i.cat === cat);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function geom(u) {
+    const box = BOX[u.cat];
+    const k = Math.min(box.w / u.aw, box.h / u.ah) * u.s;
+    const w = u.aw * k, h = u.ah * k;
+    return { x: u.cx - w / 2, y: u.cy - h / 2, w, h };
+  }
+  function uploadSVG(u, interactive) {
+    const g = geom(u);
+    return `<image ${interactive ? `data-up="${u.id}" class="drag"` : ''} href="${u.src}" x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" preserveAspectRatio="none"/>`;
+  }
+  const garmentSVG = (it, interactive) => it.src ? uploadSVG(it, interactive) : SHAPES[it.shape](it);
+  // Bottom to top: shoes, bottoms, inner top, outerwear. Each worn layer casts a shadow on what is under it,
+  // and a shirt collar is drawn again over a drawn coat or jacket, the way it sits when worn.
+  function outfitSVG(sel, interactive) {
+    const get = c => byId(sel[c]);
+    const top = get('top'), outer = get('outer');
+    const layer = (it, filter) => !it ? '' : filter ? `<g filter="url(#${filter})">${garmentSVG(it, interactive)}</g>` : garmentSVG(it, interactive);
+    let svg = mannequinSVG(state.body) + layer(get('shoes')) + layer(get('bottom')) + layer(top, 'lay-top');
+    if (outer) {
+      svg += layer(outer, 'lay-outer');
+      if (top && !top.src && top.shape === 'shirt' && !outer.src) svg += SHIRT_COLLAR(top);
+    }
+    return fitBody(svg, state.body);
+  }
+  const activeUpload = () => { const it = byId(state.sel[state.tab]); return it && it.src ? it : null; };
+
+  // ---------- recommendation ----------
+  // Every combination in the closet gets a score from the weather, the colours and how dressy each piece is;
+  // pressing the button again walks down the ranking.
+  function weatherCost(o, w) {
+    const ow = o.outer ? o.outer.warm : 0, t = o.top.warm, b = o.bottom.warm, s = o.shoes.warm;
+    if (w === 'hot') return ow * 3 + Math.max(0, t - 1) * 2 + Math.max(0, b - 1) * 1.5 + (s >= 3 ? 3 : 0);
+    if (w === 'mild') return (ow >= 3 ? 3 : 0) + (t >= 3 ? (ow ? 2.5 : .5) : 0) + (b <= 1 ? 1.5 : 0) + (s >= 3 ? 1 : 0);
+    if (w === 'chilly') return (ow === 0 ? 4 : 0) + (t <= 1 ? 1.5 : 0) + (b <= 1 ? 4 : 0);
+    return (ow === 0 ? 6 : ow < 3 ? 2 : 0) + (t <= 1 ? 3 : t === 2 ? 1 : 0) + (b <= 1 ? 6 : 0) + (s < 3 ? .5 : 0);
+  }
+  const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+
+  function analyse(o) {
+    const worn = [o.outer, o.top, o.bottom, o.shoes].filter(Boolean);
+    const accents = worn.filter(i => !i.base);
+    const forms = worn.map(i => i.form);
+    const spread = Math.max(...forms) - Math.min(...forms);
+    const avgForm = forms.reduce((a, b) => a + b, 0) / forms.length;
+    const contrast = Math.abs(hsl(o.top.color).l - hsl(o.bottom.color).l);
+    const close = accents.length === 2 && hueGap(hsl(accents[0].color).h, hsl(accents[1].color).h) < 35;
+    return { accents, spread, avgForm, contrast, close, denimTwice: !!(o.outer && o.outer.denim && o.bottom.denim) };
+  }
+
+  // How warm (+1, yellow-based) or cool (-1, blue-based) a colour reads next to the face.
+  function colorTemp(hex) {
+    const { h, s, l } = hsl(hex), c = Math.min(1, s * 1.6);
+    if (l > .9 || l < .15) return (h >= 30 && h <= 70 && s > .25) ? .3 : -.2; // ivory leans warm; pure white and black lean cool
+    if (s < .1) return -.15;
+    if (h >= 20 && h < 90) return c;
+    if (h >= 90 && h < 160) return 0;
+    if (h >= 160 && h < 300) return -c;
+    if (h >= 300 && h < 345) return -.6 * c;
+    return h >= 8 && h < 20 ? .5 * c : -.3 * c;
+  }
+  const itemTemp = it => it.stripe ? (colorTemp(it.color) + colorTemp(it.stripe)) / 2 : colorTemp(it.color);
+  const faceItems = o => [o.top, o.outer].filter(Boolean);
+  // +1 when the colour flatters the chosen undertone, -1 when it fights it, 0 when no undertone is set.
+  const toneFit = it => {
+    const t = itemTemp(it), tone = state.skin.tone;
+    return tone === 'warm' ? t : tone === 'cool' ? -t : tone === 'neutral' ? -Math.abs(t) * .3 : 0;
+  };
+  // A colour about as light as the skin and in the same family blurs the face line.
+  const nearSkin = it => {
+    const sk = skinHex(); if (!sk) return false;
+    const a = hsl(sk), b = hsl(it.color);
+    return Math.abs(a.l - b.l) < .1 && hueGap(a.h, b.h) < 25 && b.s < .6;
+  };
+
+  function score(o, w) {
+    const a = analyse(o);
+    let v = -weatherCost(o, w) * 1.4;
+    v += a.accents.length === 0 ? 1.6 : a.accents.length === 1 ? 2 : a.accents.length === 2 ? (a.close ? 1 : -3) : -5;
+    v -= Math.max(0, a.spread - 1) * 1.5;
+    if (a.contrast >= .3) v += .8; else if (a.contrast < .08) v -= 1;
+    if (a.denimTwice) v -= 2.5;
+    // Personal colour: what sits near the face matters most (the top, then the outer layer over it).
+    if (state.skin.tone !== 'unknown') v += 1.6 * toneFit(o.top) + (o.outer ? 1.2 * toneFit(o.outer) : 0);
+    for (const it of faceItems(o)) if (nearSkin(it)) v -= 1.5;
+    return v + Math.random() * .6;
+  }
+
+  function reasons(o, w) {
+    const out = [];
+    const top = o.top.name, outer = o.outer && o.outer.name;
+    if (w === 'hot') out.push('더운 날이라 아우터 없이 가볍게 골랐어요.');
+    else if (w === 'mild') out.push(outer ? `선선한 날이라 ${josa(outer, '을', '를')} 가볍게 걸쳤어요.` : `선선한 날이라 아우터 없이 ${top} 한 장이면 충분해요.`);
+    else if (w === 'chilly') out.push(outer ? `쌀쌀하니까 ${josa(outer, '을', '를')} 걸쳤어요.` : '쌀쌀한 날인데 옷장에 아우터가 없어서 빼고 골랐어요.');
+    else out.push(outer ? `추운 날이라 ${outer}에 ${josa(top, '을', '를')} 받쳐 입었어요.` : '추운 날인데 옷장에 아우터가 없어서 빼고 골랐어요.');
+
+    const tone = state.skin.tone;
+    if (tone !== 'unknown') {
+      const face = faceItems(o);
+      const good = face.filter(i => toneFit(i) > .3 && !nearSkin(i)), bad = face.filter(i => toneFit(i) < -.3);
+      const names = list => list.map(i => i.colorName).join(', ');
+      if (bad.length) out.push(`${josa(names(bad), '은', '는')} ${TONE_NAMES[tone]}과 반대 계열이라 얼굴 가까이에서 살짝 겉돌 수 있어요.`);
+      else if (good.length) out.push(`${josa(names(good), '이', '가')} ${TONE_NAMES[tone]} 피부를 화사하게 받쳐줘요.`);
+      else out.push(`얼굴 가까이에 ${TONE_NAMES[tone]}에 무난한 색을 두었어요.`);
+    }
+    const blur = faceItems(o).find(nearSkin);
+    if (blur) out.push(`${josa(blur.name, '이', '가')} 피부색과 비슷해서 얼굴선이 흐려 보일 수 있어요. 목걸이나 머플러로 경계를 주면 좋아요.`);
+
+    const a = analyse(o);
+    if (a.accents.length === 0) out.push('색은 무채색과 기본색으로 차분하게 맞췄어요.');
+    else if (a.accents.length === 1) out.push(`포인트 색은 ${a.accents[0].name}(${a.accents[0].colorName}) 하나만 두었어요.`);
+    else if (a.close) out.push(`${josa(a.accents[0].colorName, '과', '와')} ${a.accents[1].colorName}처럼 비슷한 색끼리 맞춰서 자연스러워요.`);
+    if (a.spread <= 1 && a.avgForm >= 2.6) out.push('단정한 아이템끼리 모아서 깔끔해 보여요.');
+    else if (a.spread <= 1 && a.avgForm <= 1.4) out.push('편한 아이템끼리라 활동하기 좋아요.');
+    else if (a.contrast >= .3) out.push('상의와 하의의 밝기 차이가 있어서 실루엣이 또렷해 보여요.');
+    return out.slice(0, 4);
+  }
+
+  let ranking = null; // { key, list, i }
+  function buildRanking() {
+    const outers = [null, ...itemsOf('outer')];
+    const list = [];
+    // On the 남성 mannequin, pieces marked as womenswear stay in the closet but are left out of recommendations.
+    const bottoms = itemsOf('bottom').filter(i => state.body === 'f' || !i.womens);
+    for (const top of itemsOf('top')) for (const bottom of bottoms) for (const shoes of itemsOf('shoes')) for (const outer of outers) {
+      const o = { top, bottom, shoes, outer };
+      list.push({ o, v: score(o, state.weather) });
+    }
+    list.sort((x, y) => y.v - x.v);
+    // Keep the shortlist varied: each pick differs from the ones before it in at least two pieces.
+    const differ = (x, y) => ['top', 'bottom', 'shoes', 'outer'].filter(k => x.o[k] !== y.o[k]).length;
+    const picked = [];
+    for (const x of list) { if (picked.every(y => differ(x, y) >= 2)) picked.push(x); if (picked.length === 6) break; }
+    for (const x of list) { if (picked.length === 6) break; if (!picked.includes(x)) picked.push(x); }
+    return picked;
+  }
+  const selOf = o => ({ top: o.top.id, bottom: o.bottom.id, outer: o.outer ? o.outer.id : null, shoes: o.shoes.id });
+  const sameSel = (a, b) => SUMMARY_ORDER.every(k => (a[k] || null) === (b[k] || null));
+  const closetKey = () => state.weather + '|' + state.body + '|' + state.skin.depth + state.skin.tone + '|' + allItems().map(i => `${i.id}:${i.warm}:${i.form}:${i.color}`).join(',');
+
+  function recommend() {
+    if (!['top', 'bottom', 'shoes'].every(c => itemsOf(c).length)) { toast('상의, 하의, 신발이 하나씩은 있어야 추천할 수 있어요.'); return; }
+    const key = closetKey();
+    if (!ranking || ranking.key !== key) ranking = { key, list: buildRanking(), i: -1 };
+    // Skip the outfit already on the mannequin so the button always changes something.
+    do { ranking.i = (ranking.i + 1) % ranking.list.length; }
+    while (ranking.list.length > 1 && sameSel(selOf(ranking.list[ranking.i].o), state.sel));
+    const pickd = ranking.list[ranking.i];
+    state.sel = selOf(pickd.o);
+    state.rec = { sel: { ...state.sel }, reasons: reasons(pickd.o, state.weather), rank: ranking.i + 1, total: ranking.list.length };
+  }
+
+  // ---------- rendering ----------
+  const $ = id => document.getElementById(id);
+  const stage = $('stage');
+
+  function renderStage() {
+    let html = FLOOR + outfitSVG(state.sel, true);
+    const u = activeUpload();
+    if (u) {
+      const g = geom(u);
+      html += `<rect id="up-outline" x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" fill="none" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="4 3" pointer-events="none"/>`;
+    }
+    stage.innerHTML = html;
+    stage.classList.toggle('has-up', LAYER_ORDER.some(c => { const it = byId(state.sel[c]); return it && it.src; }));
+  }
+
+  function renderOutfit() {
+    $('outfit').innerHTML = SUMMARY_ORDER.map(c => {
+      const it = byId(state.sel[c]);
+      const val = it ? `${esc(it.name)}${it.colorName ? ` <span class="c">· ${esc(it.colorName)}</span>` : ''}` : '<span class="c">없음</span>';
+      return `<dt>${LABEL[c]}</dt><dd>${val}</dd>`;
+    }).join('');
+    renderWhy();
+  }
+
+  function renderWhy() {
+    const r = state.rec, show = !!(r && sameSel(r.sel, state.sel));
+    $('why').hidden = !show;
+    $('btn-rec').textContent = r && show ? '다른 추천' : '추천 코디';
+    if (!show) return;
+    $('why-rank').textContent = `추천 ${r.rank} / ${r.total}`;
+    $('why-list').innerHTML = r.reasons.map(t => `<li>${esc(t)}</li>`).join('');
+  }
+
+  function renderBody() {
+    for (const b of $('body').querySelectorAll('[data-body]')) b.setAttribute('aria-pressed', String(b.dataset.body === state.body));
+    for (const b of $('tone').querySelectorAll('[data-tone]')) b.setAttribute('aria-pressed', String(b.dataset.tone === state.skin.tone));
+    const pal = SKIN[state.skin.tone === 'unknown' ? 'neutral' : state.skin.tone];
+    $('skin').innerHTML = `<button type="button" class="sw base" data-depth="0" aria-pressed="${state.skin.depth === 0}" aria-label="마네킹 기본색"></button>`
+      + pal.map((hex, i) => `<button type="button" class="sw" data-depth="${i + 1}" style="background:${hex}" aria-pressed="${state.skin.depth === i + 1}" aria-label="피부색 ${SKIN_NAMES[i]}"></button>`).join('');
+    $('skin-name').textContent = state.skin.depth ? SKIN_NAMES[state.skin.depth - 1] : '마네킹 기본';
+  }
+
+  function renderWeather() {
+    $('weather').innerHTML = WEATHER.map(w =>
+      `<button type="button" class="chip" data-w="${w.k}" aria-pressed="${state.weather === w.k}">${w.label}<small>${w.range}</small></button>`
+    ).join('');
+  }
+
+  function tileHTML(it) {
+    const pressed = state.sel[it.cat] === it.id;
+    const thumb = it.src ? `<img src="${it.src}" alt="">` : `<svg viewBox="${CROP[it.cat]}" aria-hidden="true">${SHAPES[it.shape](it)}</svg>`;
+    const tag = `<span class="tag"><i style="background:${it.color}"></i>${it.src ? '내 사진 · ' : ''}${esc(it.colorName)}</span>`;
+    const fit = (it.cat === 'top' || it.cat === 'outer') && state.skin.tone !== 'unknown' && state.skin.tone !== 'neutral' && toneFit(it) > .3
+      ? `<span class="fit">${TONE_NAMES[state.skin.tone]} 추천</span>` : '';
+    return `<button type="button" class="tile" data-id="${it.id}" aria-pressed="${pressed}">${fit}<span class="thumb">${thumb}</span><span class="tname">${esc(it.name)}</span>${tag}</button>`;
+  }
+
+  function renderCloset() {
+    $('tabs').innerHTML = TAB_ORDER.map(c =>
+      `<button type="button" class="tab" role="tab" data-tab="${c}" aria-selected="${state.tab === c}">${LABEL[c]}<span class="n">${itemsOf(c).length}</span></button>`
+    ).join('');
+    let html = '';
+    if (state.tab === 'outer') {
+      html += `<button type="button" class="tile" data-id="" aria-pressed="${!state.sel.outer}"><span class="thumb"><span class="none">없음</span></span><span class="tname">아우터 없이</span><span class="tag">따뜻한 날</span></button>`;
+    }
+    html += itemsOf(state.tab).map(tileHTML).join('');
+    html += `<label class="tile add" for="file-input"><span class="thumb">+</span><span class="tname">사진으로 추가</span><span class="tag">배경 자동 제거</span></label>`;
+    $('grid').innerHTML = html;
+
+    const u = activeUpload();
+    $('adjust').hidden = !u;
+    if (u) {
+      $('adj-name').textContent = u.name;
+      $('adj-size').value = Math.round(u.s * 100);
+      $('adj-size-out').textContent = `${Math.round(u.s * 100)}%`;
+      $('adj-tol').value = u.tol;
+      $('adj-warm').value = u.warm;
+      $('adj-form').value = u.form;
+      $('adj-tol-out').textContent = u.tol === 0 ? '끔' : u.tol;
+      disarmDelete();
+    }
+  }
+
+  function renderCombos() {
+    const box = $('combos');
+    if (!state.combos.length) { box.innerHTML = '<p class="empty">마음에 드는 조합을 저장하면 여기에 모여요.</p>'; return; }
+    box.innerHTML = state.combos.map(c => `<div class="combo-wrap">
+        <button type="button" class="combo" data-combo="${c.id}" aria-label="저장한 조합 입히기">
+          <svg viewBox="40 20 220 615" aria-hidden="true">${FLOOR}${outfitSVG(c.sel, false)}</svg>
+          <span>${c.ex ? '예시' : esc(c.label || '')}</span>
+        </button>
+        <button type="button" class="combo-del" data-del="${c.id}" aria-label="이 조합 삭제">×</button>
+      </div>`).join('');
+  }
+
+  function renderAll() { renderStage(); renderOutfit(); renderCloset(); renderCombos(); renderWeather(); renderBody(); }
+
+  let toastTimer;
+  function toast(msg, sticky) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    if (!sticky) toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  // ---------- photo → cut-out garment ----------
+  const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+  async function prepOriginal(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await loadImg(url);
+      const s = Math.min(1, 640 / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', .88);
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  // Flood-fill the background in from the photo's edges, using the corners' colour as the background.
+  async function cutout(src, tol) {
+    const img = await loadImg(src);
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const im = ctx.getImageData(0, 0, w, h), d = im.data;
+    if (tol <= 0) return { src: c.toDataURL('image/png'), aw: w, ah: h, color: avgColor(d) };
+    let r = 0, g = 0, b = 0, n = 0;
+    const k = Math.max(2, Math.round(Math.min(w, h) * .03));
+    for (const [cx, cy] of [[0, 0], [w - k, 0], [0, h - k], [w - k, h - k]])
+      for (let y = cy; y < cy + k; y++) for (let x = cx; x < cx + k; x++) { const i = (y * w + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    r /= n; g /= n; b /= n;
+    const t2 = tol * tol;
+    const near = p => { const i = p * 4, dr = d[i] - r, dg = d[i + 1] - g, db = d[i + 2] - b; return dr * dr + dg * dg + db * db < t2; };
+    const seen = new Uint8Array(w * h), q = new Int32Array(w * h);
+    let head = 0, tail = 0;
+    const push = p => { if (!seen[p] && near(p)) { seen[p] = 1; q[tail++] = p; } };
+    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
+    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
+    while (head < tail) {
+      const p = q[head++], x = p % w;
+      if (x > 0) push(p - 1);
+      if (x < w - 1) push(p + 1);
+      if (p >= w) push(p - w);
+      if (p < w * (h - 1)) push(p + w);
+    }
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const p = y * w + x;
+      if (seen[p]) { d[p * 4 + 3] = 0; continue; }
+      if ((x > 0 && seen[p - 1]) || (x < w - 1 && seen[p + 1]) || (y > 0 && seen[p - w]) || (y < h - 1 && seen[p + w])) d[p * 4 + 3] = 150;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 < 0) return { src: c.toDataURL('image/png'), aw: w, ah: h, color: avgColor(ctx.getImageData(0, 0, w, h).data) };
+    const color = avgColor(d);
+    ctx.putImageData(im, 0, 0);
+    const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+    const o = document.createElement('canvas'); o.width = cw; o.height = ch;
+    o.getContext('2d').drawImage(c, x0, y0, cw, ch, 0, 0, cw, ch);
+    return { src: o.toDataURL('image/png'), aw: cw, ah: ch, color };
+  }
+
+  // Average colour of the pixels that are still visible.
+  function avgColor(d) {
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 16) if (d[i + 3] > 200) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    if (!n) return '#808080';
+    return '#' + [r, g, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join('');
+  }
+  const colorFields = color => { const name = colorNameOf(color); return { color, colorName: name, base: BASE_NAMES.includes(name) }; };
+
+  // ---------- events ----------
+  $('tabs').addEventListener('click', e => {
+    const t = e.target.closest('[data-tab]');
+    if (!t) return;
+    state.tab = t.dataset.tab;
+    renderCloset(); renderStage();
+  });
+
+  $('grid').addEventListener('click', e => {
+    const t = e.target.closest('button.tile');
+    if (!t) return;
+    state.sel[state.tab] = t.dataset.id || null;
+    renderStage(); renderOutfit(); renderCloset(); save();
+  });
+
+  $('file-input').addEventListener('change', async e => {
+    const input = e.target, file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    toast('배경을 지우는 중이에요…', true);
+    try {
+      const orig = await prepOriginal(file);
+      const tol = 40;
+      const r = await cutout(orig, tol);
+      const cat = state.tab, box = BOX[cat];
+      const n = state.uploads.filter(u => u.cat === cat).length + 1;
+      const u = { id: 'u' + Date.now().toString(36), cat, name: `내 ${LABEL[cat]} ${n}`, src: r.src, orig, aw: r.aw, ah: r.ah, tol, s: 1, cx: box.x + box.w / 2, cy: box.y + box.h / 2, warm: 2, form: 2, ...colorFields(r.color) };
+      state.uploads.push(u);
+      state.sel[cat] = u.id;
+      renderAll(); save();
+      toast(`옷장에 넣었어요. ${r.color ? colorNameOf(r.color) + ' 계열로 알아봤어요. ' : ''}두께와 느낌을 고르면 추천이 더 정확해져요.`);
+    } catch (err) {
+      toast('이 사진을 열지 못했어요. JPG나 PNG 사진으로 다시 올려 주세요.');
+    }
+  });
+
+  function syncUploadEl(u) {
+    const g = geom(u);
+    for (const el of [stage.querySelector(`[data-up="${u.id}"]`), $('up-outline')]) {
+      if (!el) continue;
+      el.setAttribute('x', g.x); el.setAttribute('y', g.y); el.setAttribute('width', g.w); el.setAttribute('height', g.h);
+    }
+  }
+
+  $('adj-size').addEventListener('input', e => {
+    const u = activeUpload(); if (!u) return;
+    u.s = e.target.value / 100;
+    $('adj-size-out').textContent = `${e.target.value}%`;
+    syncUploadEl(u);
+  });
+  $('adj-size').addEventListener('change', () => { renderCombos(); save(); });
+
+  $('adj-tol').addEventListener('input', e => { $('adj-tol-out').textContent = +e.target.value === 0 ? '끔' : e.target.value; });
+  $('adj-tol').addEventListener('change', async e => {
+    const u = activeUpload(); if (!u) return;
+    toast('배경을 다시 지우는 중이에요…', true);
+    const r = await cutout(u.orig, +e.target.value);
+    Object.assign(u, { src: r.src, aw: r.aw, ah: r.ah, tol: +e.target.value }, colorFields(r.color));
+    renderAll(); save();
+    toast('배경 지우기를 다시 적용했어요.');
+  });
+
+  let armTimer;
+  function disarmDelete() { clearTimeout(armTimer); const b = $('adj-del'); b.dataset.armed = ''; b.textContent = '이 옷 삭제'; }
+  $('adj-del').addEventListener('click', e => {
+    const b = e.currentTarget, u = activeUpload(); if (!u) return;
+    if (!b.dataset.armed) {
+      b.dataset.armed = '1'; b.textContent = '한 번 더 누르면 삭제돼요';
+      clearTimeout(armTimer); armTimer = setTimeout(disarmDelete, 3000);
+      return;
+    }
+    state.uploads = state.uploads.filter(x => x.id !== u.id);
+    const first = BUILTIN.find(i => i.cat === u.cat);
+    state.sel[u.cat] = u.cat === 'outer' ? null : first.id;
+    for (const c of state.combos) if (c.sel[u.cat] === u.id) c.sel[u.cat] = null;
+    renderAll(); save();
+    toast(`${u.name}을 옷장에서 뺐어요.`);
+  });
+
+  // Drag an uploaded photo on the mannequin.
+  let drag = null;
+  const toSvg = e => { const pt = stage.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(stage.getScreenCTM().inverse()); };
+  stage.addEventListener('pointerdown', e => {
+    const t = e.target.closest('[data-up]');
+    if (!t) return;
+    const u = byId(t.dataset.up);
+    if (!u) return;
+    if (state.tab !== u.cat) { state.tab = u.cat; renderCloset(); renderStage(); }
+    drag = { u, p0: toSvg(e), c0: { cx: u.cx, cy: u.cy } };
+    stage.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const p = toSvg(e);
+    drag.u.cx = drag.c0.cx + p.x - drag.p0.x;
+    drag.u.cy = drag.c0.cy + p.y - drag.p0.y;
+    syncUploadEl(drag.u);
+  });
+  const endDrag = () => { if (!drag) return; drag = null; renderCombos(); save(); };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  $('btn-rec').addEventListener('click', () => {
+    recommend();
+    renderStage(); renderOutfit(); renderCloset();
+    save();
+  });
+
+  $('body').addEventListener('click', e => {
+    const b = e.target.closest('[data-body]');
+    if (!b || b.dataset.body === state.body) return;
+    state.body = b.dataset.body;
+    renderBody(); renderStage(); renderCombos();
+    save();
+  });
+
+  // Skin and undertone change the mannequin and the recommendation, so re-recommend right away.
+  function profileChanged() {
+    renderBody();
+    recommend();
+    renderStage(); renderOutfit(); renderCloset(); renderCombos();
+    save();
+  }
+  $('skin').addEventListener('click', e => {
+    const b = e.target.closest('[data-depth]');
+    if (!b || +b.dataset.depth === state.skin.depth) return;
+    state.skin.depth = +b.dataset.depth;
+    profileChanged();
+  });
+  $('tone').addEventListener('click', e => {
+    const b = e.target.closest('[data-tone]');
+    if (!b || b.dataset.tone === state.skin.tone) return;
+    state.skin.tone = b.dataset.tone;
+    profileChanged();
+  });
+
+  $('weather').addEventListener('click', e => {
+    const b = e.target.closest('[data-w]');
+    if (!b || b.dataset.w === state.weather) return;
+    state.weather = b.dataset.w;
+    renderWeather();
+    recommend();
+    renderStage(); renderOutfit(); renderCloset();
+    save();
+  });
+
+  for (const [id, field] of [['adj-warm', 'warm'], ['adj-form', 'form']]) {
+    $(id).addEventListener('change', e => {
+      const u = activeUpload(); if (!u) return;
+      u[field] = +e.target.value;
+      save();
+    });
+  }
+
+  $('btn-save').addEventListener('click', () => {
+    const same = state.combos.find(c => SUMMARY_ORDER.every(k => (c.sel[k] || null) === (state.sel[k] || null)));
+    if (same) { toast('이미 저장한 조합이에요.'); return; }
+    const now = new Date();
+    state.combos.unshift({ id: 'c' + now.getTime().toString(36), label: `${now.getMonth() + 1}/${now.getDate()}`, sel: { ...state.sel } });
+    renderCombos(); save();
+    toast('조합을 저장했어요.');
+  });
+
+  $('combos').addEventListener('click', e => {
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      state.combos = state.combos.filter(c => c.id !== del.dataset.del);
+      renderCombos(); save();
+      return;
+    }
+    const b = e.target.closest('[data-combo]');
+    if (!b) return;
+    const c = state.combos.find(x => x.id === b.dataset.combo);
+    if (!c) return;
+    state.sel = { ...c.sel };
+    renderStage(); renderOutfit(); renderCloset(); save();
+  });
+
+  $('today-date').textContent = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+  buildDefs();
+  // Photos saved before colour detection existed get sensible defaults.
+  for (const u of state.uploads) {
+    if (!u.warm) u.warm = 2;
+    if (!u.form) u.form = 2;
+  }
+  Promise.all(state.uploads.filter(u => !u.colorName).map(async u => {
+    try { const r = await cutout(u.src, 0); Object.assign(u, colorFields(r.color)); } catch (e) { Object.assign(u, colorFields('#808080')); }
+  })).then(() => { if (state.uploads.length) { renderCloset(); save(); } });
+  if (!saved) recommend();
+  renderAll();
+})();
+</script>
+</body>
+</html>
