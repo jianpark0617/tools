@@ -790,8 +790,10 @@
       if (!window.claude || typeof window.claude.use !== 'function') { aiState = 'no-runtime'; return; }
       const fn = await window.claude.use('sample');
       if (!fn) { aiState = 'no-runtime'; return; }
-      const lim = await fn.limits().catch(() => null);
-      if (lim && lim.images) { sampleFn = fn; aiState = 'ready'; } else aiState = 'no-images';
+      // Keep the function even when the view says it cannot send images: the call itself is the real test.
+      sampleFn = fn;
+      const lim = typeof fn.limits === 'function' ? await fn.limits().catch(() => null) : null;
+      aiState = lim && lim.images ? 'ready' : 'maybe';
     } catch (e) { aiState = 'no-runtime'; }
     renderAiStatus();
   })();
@@ -799,7 +801,8 @@
   const AI_STATUS = {
     pending: 'AI 분석: 연결 확인 중…',
     ready: 'AI 분석: 켜짐 (이 페이지가 Claude에게 사진을 보여줘요)',
-    'no-images': 'AI 분석: 이 앱에서는 사진을 보낼 수 없어요. Chrome이나 Safari에서 같은 링크를 열어 주세요.',
+    maybe: 'AI 분석: 연결됨. 이 화면이 사진 전송을 지원하는지는 올려 봐야 알 수 있어요.',
+    'no-images': 'AI 분석: 이 화면에서는 Claude에게 사진을 보낼 수 없어요. 분석 서버를 켜면 어디서나 돼요.',
     'no-runtime': ANALYZE_URL ? 'AI 분석: 켜짐 (분석 서버 연결)' : 'AI 분석: 이 링크에서는 꺼져 있어요. claude.ai 미리보기 링크에서 올리거나 분석 서버를 켜 주세요.',
   };
   function renderAiStatus() { const el = $('ai-status'); if (el) el.textContent = AI_STATUS[aiState]; }
@@ -830,7 +833,7 @@
   }
   const AI_ERRORS = {
     unavailable: '이 링크에서는 AI 분석이 꺼져 있어서 색만 읽었어요. claude.ai 미리보기 링크에서 올리면 AI가 읽어 주고, 여기서는 종류와 모양을 직접 골라 주세요.',
-    'no-images': '이 앱에서는 Claude에게 사진을 보낼 수 없어요. Chrome이나 Safari에서 같은 링크를 열어 다시 올려 주세요. 지금은 직접 골라 주세요.',
+    images_unavailable: '이 claude.ai 화면은 아직 페이지가 Claude에게 사진을 보내는 걸 지원하지 않아요. 분석 서버(worker 설명서)를 켜면 어디서나 되고, 지금은 종류와 모양을 직접 골라 주세요.',
     not_granted: 'AI 사용을 허용하지 않아서 색만 읽었어요. 종류와 모양을 직접 골라 주세요.',
     sampling_disabled: '이 계정에서는 AI 분석을 쓸 수 없어요. 종류와 모양을 직접 골라 주세요.',
     rate_limited: '요청이 많아서 잠시 쉬어야 해요. 지금은 직접 고르거나, 잠시 후 다시 올려 주세요.',
@@ -1021,7 +1024,7 @@
     setAI('AI 연결을 확인하는 중이에요…', true);
     await sampleReady;
     if (sheet.token !== token) return;
-    if (!aiAvailable()) { setAI(AI_ERRORS[aiState === 'no-images' ? 'no-images' : 'unavailable']); return; }
+    if (!aiAvailable()) { setAI(AI_ERRORS.unavailable); return; }
     setAI('AI가 사진을 보는 중이에요… 5~20초쯤 걸려요. 처음이면 허용할지 묻는 창이 떠요.', true);
     let note;
     try {
@@ -1031,6 +1034,7 @@
       draft.ai = r && r.category !== 'none';
       fillSheet();
     } catch (err) {
+      if (err && err.code === 'images_unavailable') { aiState = 'no-images'; renderAiStatus(); }
       if (sheet.token !== token) return;
       note = aiErrorText(err);
     }
