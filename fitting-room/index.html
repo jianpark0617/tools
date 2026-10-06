@@ -301,7 +301,7 @@
     knit: { cat: 'top', label: '니트·스웨터' }, polo: { cat: 'top', label: '카라 니트·폴로' }, sweat: { cat: 'top', label: '맨투맨' }, hoodie: { cat: 'top', label: '후드티' }, dress: { cat: 'top', label: '원피스', covers: true },
     jeans: { cat: 'bottom', label: '청바지' }, slacks: { cat: 'bottom', label: '긴바지·슬랙스' }, shorts: { cat: 'bottom', label: '반바지' }, skirt: { cat: 'bottom', label: '치마' },
     coat: { cat: 'outer', label: '코트' }, jacket: { cat: 'outer', label: '자켓' }, blazer: { cat: 'outer', label: '블레이저' },
-    cardigan: { cat: 'outer', label: '가디건' }, puffer: { cat: 'outer', label: '패딩' }, bomber: { cat: 'outer', label: '바시티·블루종' },
+    cardigan: { cat: 'outer', label: '가디건' }, shacket: { cat: 'outer', label: '남방·셔츠 자켓' }, puffer: { cat: 'outer', label: '패딩' }, bomber: { cat: 'outer', label: '바시티·블루종' },
     sneaker: { cat: 'shoes', label: '운동화' }, loafer: { cat: 'shoes', label: '로퍼·구두' }, boots: { cat: 'shoes', label: '부츠' }, sandal: { cat: 'shoes', label: '샌들·슬리퍼' },
   };
   const shapesOf = cat => Object.keys(SHAPE_INFO).filter(k => SHAPE_INFO[k].cat === cat);
@@ -338,8 +338,8 @@
     { id: 'my-varsity-green', cat: 'outer', shape: 'bomber', hood: true, name: '딥 그린 울 바시티 자켓', colorName: '딥 그린', color: '#17302a', color2: '#cfc4ae', warm: 3, form: 1, base: true },
     { id: 'my-sweat-grey', cat: 'top', shape: 'sweat', name: '라이트 그레이 맨투맨', colorName: '라이트 그레이', color: '#d6d7d5', warm: 2, form: 1, base: true },
     { id: 'my-knit-ivory', cat: 'top', shape: 'knit', name: '아이보리 하프넥 니트', colorName: '아이보리', color: '#f1ecdc', warm: 3, form: 2, base: true },
-    { id: 'my-shirt-denim', cat: 'top', shape: 'shirt', name: '데님 셔츠 (바이닐 프린트)', colorName: '중청 데님', color: '#4a6a9a', warm: 2, form: 1, base: true },
     { id: 'my-knit-greyblue', cat: 'top', shape: 'knit', name: '그레이 블루 울 니트', colorName: '그레이 블루', color: '#8a9aab', warm: 3, form: 2, base: true },
+    { id: 'my-shacket-denim', cat: 'outer', shape: 'shacket', name: '청남방 (바이닐 프린트)', colorName: '중청 데님', color: '#4a6a9a', warm: 2, form: 1, base: true, denim: true },
     { id: 'my-varsity-sg', cat: 'outer', shape: 'bomber', name: '버건디 SG 바시티 자켓', colorName: '버건디 + 화이트 소매', color: '#4a1f2b', color2: '#f3f3f0', sleeve: '#f2f2ef', warm: 2, form: 1, base: false },
     { id: 'my-coat-check', cat: 'outer', shape: 'coat', name: '글렌체크 울 코트', colorName: '브라운 그레이 체크', color: '#8a7f78', pattern: 'check', color2: '#5c524d', warm: 3, form: 3, base: true },
   ];
@@ -517,6 +517,11 @@
       + both('M96,320 L140,320 L140,334 L96,334 Z', 'url(#rib)', 'stroke="none"') + both('M61,318 L93,322 L93,336 L61,332 Z', 'url(#rib)', 'stroke="none"')
       + both('M124,106 L136,146 L132,148 L121,114 Z', shade(it.color, -.12))
       + [170, 200, 230, 260, 290].map(y => `<circle cx="164" cy="${y}" r="2" fill="var(--seam)" fill-opacity=".7"/>`).join(''),
+    shacket: it => both('M124,106 L136,146 L140,344 Q118,350 94,344 Q97,250 97,200 L89,119 Z', fillOf(it))
+      + both('M89,116 Q73,123 69,176 L61,336 L93,340 L101,200 Q102,136 89,116 Z', fillOf(it))
+      + both('M127,106 L150,130 L140,136 L120,114 Z', fillOf(it)) + bothL('M127,106 L150,130', .5)
+      + bothL('M136,146 L140,343', .45) + bothL('M62,326 L93,330', .35)
+      + [170, 205, 240, 275, 310].map(y => `<circle cx="164" cy="${y}" r="1.8" fill="var(--seam)" fill-opacity=".7"/>`).join(''),
     puffer: it => both('M122,106 L138,150 L144,344 L90,344 Q93,250 95,200 L86,118 Z', fillOf(it))
       + both('M86,116 Q62,126 63,180 L56,340 L96,344 L101,200 Q102,136 86,116 Z', fillOf(it))
       + [164, 196, 228, 260, 292, 324].map(y => bothL(`M94,${y} L143,${y}`, .3) + bothL(`M58,${y + 4} L98,${y + 4}`, .3)).join('')
