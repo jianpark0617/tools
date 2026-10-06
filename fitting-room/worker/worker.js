@@ -12,9 +12,9 @@ const MAX_IMAGE_CHARS = 4_000_000; // base64 기준 약 3MB
 
 // index.html의 SHAPE_INFO와 같은 목록이어야 해요.
 const SHAPES = {
-  tee: '반팔 티셔츠', long: '긴팔 티셔츠', shirt: '셔츠·블라우스', knit: '니트·스웨터', hoodie: '후드티·맨투맨', dress: '원피스',
+  tee: '반팔 티셔츠', long: '긴팔 티셔츠', shirt: '셔츠·블라우스', knit: '니트·스웨터', polo: '카라 니트·폴로', hoodie: '후드티·맨투맨', dress: '원피스',
   jeans: '청바지', slacks: '긴바지·슬랙스', shorts: '반바지', skirt: '치마',
-  coat: '코트', jacket: '자켓', blazer: '블레이저', cardigan: '가디건', puffer: '패딩',
+  coat: '코트', jacket: '자켓', blazer: '블레이저', cardigan: '가디건', puffer: '패딩', bomber: '바시티·블루종',
   sneaker: '운동화', loafer: '로퍼·구두', boots: '부츠', sandal: '샌들·슬리퍼',
 };
 
@@ -23,7 +23,7 @@ const PROMPT = `사진에 찍힌 옷(또는 신발) 한 가지를 보고 JSON �
 - shape: 가장 가까운 것 하나. ${Object.entries(SHAPES).map(([k, v]) => `${k}=${v}`).join(', ')}
 - name: 한국어로 짧은 이름, 색 포함 (예: "회색 후드티", "연청 와이드 데님")
 - color: 옷감의 주된 색을 #rrggbb로. 조명 때문에 밝거나 어둡게 보여도 실제 옷감 색으로 추정.
-- pattern: "solid" | "stripe" | "check" | "dots". 작은 로고나 프린트는 solid.
+- pattern: "solid" | "stripe"(가는 줄) | "block"(굵은 블록 줄) | "check" | "dots". 작은 로고나 프린트는 solid.
 - color2: 무늬의 두 번째 색 #rrggbb. 무늬가 없으면 null.
 - warm: 두께감. 1=얇음(여름용) 2=보통 3=두꺼움(기모, 니트, 겨울용)
 - form: 1=편한·캐주얼 2=무난 3=단정·격식
@@ -37,7 +37,7 @@ const SCHEMA = {
     shape: { type: 'string', enum: Object.keys(SHAPES) },
     name: { type: 'string' },
     color: { type: 'string' },
-    pattern: { type: 'string', enum: ['solid', 'stripe', 'check', 'dots'] },
+    pattern: { type: 'string', enum: ['solid', 'stripe', 'block', 'check', 'dots'] },
     color2: { type: ['string', 'null'] },
     warm: { type: 'integer' },
     form: { type: 'integer' },

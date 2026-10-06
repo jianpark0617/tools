@@ -270,7 +270,7 @@
       <label class="field">종류<select id="sh-cat"></select></label>
       <label class="field">모양<select id="sh-shape"></select></label>
       <label class="field">색<input type="color" id="sh-color"></label>
-      <label class="field">무늬<select id="sh-pattern"><option value="solid">없음</option><option value="stripe">줄무늬</option><option value="check">체크</option><option value="dots">도트</option></select></label>
+      <label class="field">무늬<select id="sh-pattern"><option value="solid">없음</option><option value="stripe">줄무늬</option><option value="block">굵은 줄무늬</option><option value="check">체크</option><option value="dots">도트</option></select></label>
       <label class="field" id="sh-color2-field">무늬 색<input type="color" id="sh-color2"></label>
       <label class="field">두께<select id="sh-warm"><option value="1">얇음</option><option value="2">보통</option><option value="3">두꺼움</option></select></label>
       <label class="field">느낌<select id="sh-form"><option value="1">편한</option><option value="2">무난한</option><option value="3">단정한</option></select></label>
@@ -298,15 +298,15 @@
   // Every garment the app can draw. A photo becomes one of these.
   const SHAPE_INFO = {
     tee: { cat: 'top', label: '반팔 티셔츠' }, long: { cat: 'top', label: '긴팔 티셔츠' }, shirt: { cat: 'top', label: '셔츠·블라우스' },
-    knit: { cat: 'top', label: '니트·스웨터' }, hoodie: { cat: 'top', label: '후드티·맨투맨' }, dress: { cat: 'top', label: '원피스', covers: true },
+    knit: { cat: 'top', label: '니트·스웨터' }, polo: { cat: 'top', label: '카라 니트·폴로' }, hoodie: { cat: 'top', label: '후드티·맨투맨' }, dress: { cat: 'top', label: '원피스', covers: true },
     jeans: { cat: 'bottom', label: '청바지' }, slacks: { cat: 'bottom', label: '긴바지·슬랙스' }, shorts: { cat: 'bottom', label: '반바지' }, skirt: { cat: 'bottom', label: '치마' },
     coat: { cat: 'outer', label: '코트' }, jacket: { cat: 'outer', label: '자켓' }, blazer: { cat: 'outer', label: '블레이저' },
-    cardigan: { cat: 'outer', label: '가디건' }, puffer: { cat: 'outer', label: '패딩' },
+    cardigan: { cat: 'outer', label: '가디건' }, puffer: { cat: 'outer', label: '패딩' }, bomber: { cat: 'outer', label: '바시티·블루종' },
     sneaker: { cat: 'shoes', label: '운동화' }, loafer: { cat: 'shoes', label: '로퍼·구두' }, boots: { cat: 'shoes', label: '부츠' }, sandal: { cat: 'shoes', label: '샌들·슬리퍼' },
   };
   const shapesOf = cat => Object.keys(SHAPE_INFO).filter(k => SHAPE_INFO[k].cat === cat);
   const covers = it => !!(it && SHAPE_INFO[it.shape] && SHAPE_INFO[it.shape].covers);
-  const cropOf = it => it.shape === 'dress' ? CROP_DRESS : it.shape === 'hoodie' ? '52 72 196 282' : CROP[it.cat];
+  const cropOf = it => it.shape === 'dress' ? CROP_DRESS : (it.shape === 'hoodie' || it.hood) ? '50 72 200 300' : CROP[it.cat];
 
   // warm: 1 얇음 · 2 보통 · 3 두꺼움, form: 1 편한 · 2 무난한 · 3 단정한, base: 어디에나 어울리는 기본색
   const BUILTIN = [
@@ -331,6 +331,11 @@
     { id: 'my-jean-dark', cat: 'bottom', shape: 'jeans', name: '다크 워시 와이드 데님', colorName: '다크 블루', color: '#4d5a68', warm: 2, form: 1, base: true, denim: true },
     { id: 'my-jean-mid', cat: 'bottom', shape: 'jeans', name: '중청 와이드 데님', colorName: '중청', color: '#3d5478', warm: 2, form: 1, base: true, denim: true },
     { id: 'my-jean-light', cat: 'bottom', shape: 'jeans', name: '연청 스트레이트 데님', colorName: '연청', color: '#9db0c6', warm: 2, form: 1, base: true, denim: true },
+    { id: 'my-knit-butter', cat: 'top', shape: 'knit', name: '버터 옐로 골지 니트', colorName: '버터 옐로', color: '#dccb8c', warm: 3, form: 2, base: false },
+    { id: 'my-polo-teal', cat: 'top', shape: 'polo', name: '틸 네이비 블록 카라 니트', colorName: '틸 + 네이비 줄무늬', color: '#2a6a7c', pattern: 'block', color2: '#1d2a52', collar: '#c9bca8', warm: 3, form: 2, base: false },
+    { id: 'my-knit-zara', cat: 'top', shape: 'knit', name: '블루 블랙 크림 청키 니트', colorName: '블랙 + 블루 + 크림 줄무늬', color: '#1f1f24', pattern: 'block', color2: '#5b84b4', color3: '#efe6cf', warm: 3, form: 1, base: false },
+    { id: 'my-tee-black', cat: 'top', shape: 'tee', name: '블랙 로고 반팔티', colorName: '블랙', color: '#1a1a1c', warm: 1, form: 1, base: true },
+    { id: 'my-varsity-green', cat: 'outer', shape: 'bomber', hood: true, name: '딥 그린 울 바시티 자켓', colorName: '딥 그린', color: '#17302a', color2: '#cfc4ae', warm: 3, form: 1, base: true },
     { id: 'my-coat-check', cat: 'outer', shape: 'coat', name: '글렌체크 울 코트', colorName: '브라운 그레이 체크', color: '#8a7f78', pattern: 'check', color2: '#5c524d', warm: 3, form: 3, base: true },
   ];
 
@@ -393,6 +398,10 @@
   function patternDef(it) {
     if (!patterned(it)) return '';
     const bg = `<rect width="14" height="14" fill="${it.color}"/>`;
+    if (it.pattern === 'block') {
+      const bands = [it.color, it.color2, it.color3].filter(Boolean), h = 16;
+      return `<pattern id="pat-${it.id}" width="16" height="${h * bands.length}" patternUnits="userSpaceOnUse">${bands.map((c, i) => `<rect y="${i * h}" width="16" height="${h}" fill="${c}"/>`).join('')}</pattern>`;
+    }
     const mark = it.pattern === 'stripe' ? `<rect y="8" width="14" height="5" fill="${it.color2}"/>`
       : it.pattern === 'check' ? `<rect width="7" height="14" fill="${it.color2}" fill-opacity=".5"/><rect width="14" height="7" fill="${it.color2}" fill-opacity=".5"/>`
       : `<circle cx="7" cy="7" r="2.2" fill="${it.color2}"/>`;
@@ -502,12 +511,24 @@
       + both('M89,116 Q73,123 69,176 L61,332 L93,336 L101,200 Q102,136 89,116 Z', fillOf(it))
       + both('M96,320 L140,320 L140,334 L96,334 Z', 'url(#rib)', 'stroke="none"') + both('M61,318 L93,322 L93,336 L61,332 Z', 'url(#rib)', 'stroke="none"')
       + both('M124,106 L136,146 L132,148 L121,114 Z', shade(it.color, -.12))
-      + [170, 200, 230, 260, 290].map(y => `<circle cx="146" cy="${y}" r="2" fill="var(--seam)" fill-opacity=".7"/>`).join(''),
+      + [170, 200, 230, 260, 290].map(y => `<circle cx="164" cy="${y}" r="2" fill="var(--seam)" fill-opacity=".7"/>`).join(''),
     puffer: it => both('M122,106 L138,150 L144,344 L90,344 Q93,250 95,200 L86,118 Z', fillOf(it))
       + both('M86,116 Q62,126 63,180 L56,340 L96,344 L101,200 Q102,136 86,116 Z', fillOf(it))
       + [164, 196, 228, 260, 292, 324].map(y => bothL(`M94,${y} L143,${y}`, .3) + bothL(`M58,${y + 4} L98,${y + 4}`, .3)).join('')
       + P('M124,100 L176,100 L180,118 L150,128 L120,118 Z', fillOf(it)) + L('M150,128 L150,344', .45)
       + bothL('M138,150 L144,343', 1, `stroke="${shade(it.color, -.3)}" stroke-width="2"`),
+    polo: it => P(LONG, fillOf(it)) + P('M98,292 L202,292 L202,305 Q150,313 98,305 Z', 'url(#rib)', 'stroke="none"') + L('M98,292 L202,292', .35)
+      + both('M67,326 L90,331 L88,346 L66,340 Z', 'url(#rib)', 'stroke="none"') + bothL('M67,326 L90,331', .35)
+      + P('M150,136 L150,176', 'none') + L('M150,136 L150,176', .5) + [150, 166].map(y => `<circle cx="150" cy="${y}" r="2.2" fill="var(--seam)" fill-opacity=".8"/>`).join('')
+      + both('M126,106 L150,136 L139,142 L118,116 Z', it.collar || it.color) + P('M126,106 Q150,118 174,106 L172,102 Q150,112 128,102 Z', it.collar || it.color),
+    bomber: it => (it.hood ? P('M116,112 Q106,88 126,80 Q150,72 174,80 Q194,88 184,112 Q150,126 116,112 Z', shade(it.color, -.14)) : '')
+      + both('M122,106 L138,150 L142,322 L92,322 Q94,250 95,200 L87,118 Z', fillOf(it))
+      + both('M87,116 Q63,126 65,180 L60,322 L96,326 L101,200 Q102,136 87,116 Z', fillOf(it))
+      + P('M92,318 L208,318 L208,336 Q150,342 92,336 Z', it.color) + bothL('M92,324 L150,324', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.6"`) + bothL('M92,331 L150,331', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.6"`)
+      + both('M60,314 L96,318 L95,336 L59,332 Z', it.color) + bothL('M61,320 L95,323', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.4"`) + bothL('M60,327 L95,330', 1, `stroke="${it.color2 || '#ddd'}" stroke-width="2.4"`)
+      + P('M124,100 L176,100 L180,118 L150,128 L120,118 Z', shade(it.color, -.1)) + L('M150,128 L150,320', .5)
+      + [160, 200, 240, 280].map(y => `<circle cx="163" cy="${y}" r="2.4" fill="${shade(it.color, -.45)}"/>`).join('')
+      + bothL('M138,150 L142,320', 1, `stroke="${shade(it.color, -.35)}" stroke-width="2"`),
     sandal: it => both('M103,612 L144,612 Q147,620 140,621 L102,621 Q95,620 97,615 Z', fillOf(it))
       + bothL('M108,612 L122,603 L136,612', .7) + bothL('M126,612 L130,604', .5),
   };
@@ -832,7 +853,7 @@
 - shape: 가장 가까운 것 하나. ` + Object.entries(SHAPE_INFO).map(([k, v]) => `${k}=${v.label}`).join(', ') + `
 - name: 한국어로 짧은 이름, 색 포함 (예: "회색 후드티", "연청 와이드 데님")
 - color: 옷감의 주된 색을 #rrggbb로. 조명 때문에 밝거나 어둡게 보여도 실제 옷감 색으로 추정.
-- pattern: "solid" | "stripe" | "check" | "dots". 작은 로고나 프린트는 solid.
+- pattern: "solid" | "stripe"(가는 줄) | "block"(굵은 블록 줄) | "check" | "dots". 작은 로고나 프린트는 solid.
 - color2: 무늬의 두 번째 색 #rrggbb. 무늬가 없으면 null.
 - warm: 두께감. 1=얇음(여름용) 2=보통 3=두꺼움(기모, 니트, 겨울용)
 - form: 1=편한·캐주얼 2=무난 3=단정·격식
@@ -898,7 +919,7 @@
     if (TAB_ORDER.includes(r.category)) draft.cat = r.category;
     if (SHAPE_INFO[r.shape] && SHAPE_INFO[r.shape].cat === draft.cat) draft.shape = r.shape; else draft.shape = shapesOf(draft.cat)[0];
     if (isHex(r.color)) draft.color = r.color.toLowerCase();
-    draft.pattern = ['solid', 'stripe', 'check', 'dots'].includes(r.pattern) ? r.pattern : 'solid';
+    draft.pattern = ['solid', 'stripe', 'block', 'check', 'dots'].includes(r.pattern) ? r.pattern : 'solid';
     if (draft.pattern !== 'solid') draft.color2 = isHex(r.color2) ? r.color2.toLowerCase() : shade(draft.color, -.4);
     draft.warm = clamp3(r.warm); draft.form = clamp3(r.form);
     if (typeof r.name === 'string' && r.name.trim()) draft.name = r.name.trim().slice(0, 24);
