@@ -1,8 +1,6 @@
 name: 항공권 감시 봇 (텔레그램 명령)
 
 on:
-  push:  # 임시: 브랜치 테스트용
-    branches: [claude/quirky-brahmagupta-xynomy]
   schedule:
     # 10분마다 텔레그램 메시지를 확인해요. GitHub 사정에 따라 몇 분 늦어질 수 있어요.
     - cron: "*/10 * * * *"
