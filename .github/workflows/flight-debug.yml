@@ -1,0 +1,35 @@
+name: flight-debug (임시)
+on:
+  push:
+    branches: [claude/quirky-brahmagupta-xynomy]
+    paths: [".github/workflows/flight-debug.yml"]
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r flight-watch/requirements.txt
+      - run: |
+          mkdir -p dump && python - <<'PY'
+          import json, time, traceback
+          from fast_flights import FlightQuery, Passengers, create_query, fetch_flights_html
+          from fast_flights.parser import parse
+          cases = [("ok", "2027-01-16", "2027-01-19", "HND"), ("none", "2027-01-16", "2027-01-19", "NRT"),
+                   ("err", "2027-01-15", "2027-01-18", "NRT"), ("kix", "2026-12-25", "2026-12-28", "KIX"),
+                   ("oneway", "2027-01-16", None, "NRT")]
+          for tag, dep, ret, ap in cases:
+              fl = [FlightQuery(date=dep, from_airport="ICN", to_airport=ap, max_stops=0)]
+              if ret: fl.append(FlightQuery(date=ret, from_airport=ap, to_airport="ICN", max_stops=0))
+              q = create_query(flights=fl, trip="round-trip" if ret else "one-way", passengers=Passengers(adults=1), language="ko", currency="KRW")
+              html = fetch_flights_html(q)
+              open(f"dump/{tag}.html", "w").write(html)
+              try:
+                  r = parse(html); print(tag, "parsed", len(r), [f.price for f in r][:10])
+              except Exception:
+                  print(tag, "PARSE FAIL"); traceback.print_exc()
+              time.sleep(2)
+          PY
+      - uses: actions/upload-artifact@v4
+        with: { name: dump, path: dump }
