@@ -552,6 +552,14 @@ def main(argv: list[str] | None = None) -> int:
         if send_telegram(summary_message(cfg, per_dest), no_send=args.no_send):
             sent += 1
 
+    # 설정에서 빠진 여행지나 바뀐 출발지의 기록 파일은 정리해요.
+    if not args.only and HISTORY_DIR.exists():
+        keep = {history_path(cfg["origin"].upper(), d["name"]) for d in cfg["destinations"]}
+        for f in HISTORY_DIR.glob("*.json"):
+            if f not in keep:
+                f.unlink()
+                print(f"오래된 기록 삭제: {f.name}")
+
     any_result = any(offers for _, offers, _ in per_dest)
     print(f"\n완료: 여행지 {len(dests)}곳, 알림 {sent}건, 조회 실패 {total_failures}건")
     if not any_result:

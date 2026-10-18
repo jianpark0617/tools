@@ -3,7 +3,7 @@ several tools that i needed
 
 ## ✈️ 항공권 최저가 감시기 (`flight-watch/`)
 
-여행지와 기간을 `flight-watch/config.json`에 적어 두면, 매일 아침 GitHub Actions가 Google Flights 최저가를 찾아보고 기준가 아래이거나 역대 최저가가 갱신되면 텔레그램으로 예매 링크와 함께 알려 줘요. 설정 방법은 [`flight-watch/README.md`](flight-watch/README.md).
+여행지와 기간을 `flight-watch/config.json`에 적어 두면, 매일 아침 GitHub Actions가 Google Flights 최저가를 찾아보고 기준가 아래이거나 역대 최저가가 갱신되면 텔레그램으로 예매 링크와 함께 알려 줘요. 설정 방법은 [`flight-watch/README.md`](flight-watch/README.md), 내 것으로 만들려면 [`flight-watch/SETUP.md`](flight-watch/SETUP.md).
 
 ## 아침 피팅룸 (`fitting-room/`)
 

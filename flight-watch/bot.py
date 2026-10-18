@@ -93,6 +93,7 @@ HELP = (
     "/요일 도쿄 목,금,토 — 출발 요일 (전부 = 매일)\n"
     "/출발지 GMP — 출발 공항\n"
     "/요약 — 지금 최저가 요약\n"
+    "/초기화 — 가격 기록 지우기 (처음부터 다시 비교)\n"
     "\n명령은 몇 분 뒤에 처리돼요. 처리되면 답장이 와요."
 )
 
@@ -106,6 +107,7 @@ COMMANDS = {
     "요일": "weekdays", "weekdays": "weekdays", "days": "days",
     "출발지": "origin", "origin": "origin",
     "요약": "summary", "summary": "summary",
+    "초기화": "reset", "reset": "reset",
     "도움": "help", "help": "help", "start": "help",
 }
 
@@ -361,6 +363,17 @@ def cmd_origin(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
     return f"출발 공항을 {code}로 바꿨어요. 역대 최저가 기록은 공항별로 따로 쌓여요.", True
 
 
+def cmd_reset(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
+    """가격 기록을 지워요. Fork로 받은 남의 기록을 비우거나, 처음부터 다시 비교하고 싶을 때."""
+    from watch import HISTORY_DIR
+
+    n = 0
+    for f in HISTORY_DIR.glob("*.json"):
+        f.unlink()
+        n += 1
+    return f"가격 기록 {n}개를 지웠어요. 다음 조회 때 '첫 조회 결과'부터 다시 시작해요.", False
+
+
 def cmd_help(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
     return HELP, False
 
@@ -368,7 +381,7 @@ def cmd_help(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
 HANDLERS = {
     "list": cmd_list, "price": cmd_price, "add": cmd_add, "del": cmd_del,
     "period": cmd_period, "nights": cmd_nights, "weekdays": cmd_weekdays, "days": cmd_weekdays,
-    "origin": cmd_origin, "help": cmd_help,
+    "origin": cmd_origin, "help": cmd_help, "reset": cmd_reset,
 }
 
 
@@ -449,6 +462,15 @@ def main() -> int:
     state = load_state()
     today = datetime.now(KST).date()
 
+    # 토큰의 앞부분은 봇 번호예요. Fork로 받은 저장소에는 원래 주인 봇의 읽은 위치가
+    # 들어 있을 수 있어서, 봇이 다르면 처음부터 다시 읽어요.
+    bot_id = token.split(":")[0]
+    if "bot_id" not in state:
+        state["bot_id"] = bot_id  # 예전 형식의 상태 파일: 번호만 적어 둬요
+    elif state["bot_id"] != bot_id:
+        print("봇이 바뀌어서 읽은 위치를 초기화해요.")
+        state = {"offset": None, "bot_id": bot_id}
+
     updates = tg_get_updates(token, state.get("offset"))
     print(f"새 업데이트 {len(updates)}건")
     changed = False
@@ -475,7 +497,7 @@ def main() -> int:
     if changed:
         save_config(cfg)
         print("config.json 저장")
-    if updates:
+    if updates or not STATE_PATH.exists() or load_state().get("bot_id") != bot_id:
         save_state(state)
     set_output("summary", "true" if want_summary else "false")
     set_output("changed", "true" if changed else "false")
