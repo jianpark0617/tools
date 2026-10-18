@@ -44,6 +44,10 @@ MAX_RUNS_KEPT = 400
 REALERT_DROP_RATIO = 0.03
 REALERT_AFTER_DAYS = 7
 
+# Google이 가끔 빈 오류 응답을 줘요. 이만큼 다시 시도해요.
+FETCH_RETRIES = 3
+RETRY_BACKOFF_SECONDS = 4
+
 
 # ---------------------------------------------------------------------------
 # 데이터 구조
@@ -179,39 +183,87 @@ def make_query(cfg: dict, origin: str, combo: Combo):
     )
 
 
+class GoogleTransientError(Exception):
+    """Google이 일시적인 오류 응답을 보냈어요. 잠시 뒤 다시 시도하면 보통 돼요."""
+
+
+def parse_offers(html: str) -> list[dict]:
+    """Google Flights 결과 HTML에서 항공편 목록을 뽑아요.
+
+    fast-flights의 내장 파서는 "다른 항공편"(payload[3])만 읽고, 가격이 없는 항목을
+    만나면 IndexError로 죽어요. 그래서 "추천 항공편"(payload[2])까지 함께 읽고
+    가격 없는 항목은 건너뛰는 파서를 직접 둬요. (구조 발견: fast-flights/@kftang)
+    """
+    from selectolax.lexbor import LexborHTMLParser
+
+    script = LexborHTMLParser(html).css_first(r"script.ds\:1")
+    if script is None:
+        raise GoogleTransientError("결과 데이터(script.ds:1)가 없어요. 차단되었거나 페이지 구조가 바뀐 듯해요.")
+    js = script.text()
+    data = js.split("data:", 1)[1].rsplit(",", 1)[0]
+    if data.rstrip().endswith("errorHasStatus: true"):
+        raise GoogleTransientError("Google ErrorResponse")
+    payload = json.loads(data)
+
+    offers: list[dict] = []
+    for idx in (2, 3):  # 2 = 추천 항공편, 3 = 다른 항공편
+        section = payload[idx] if len(payload) > idx else None
+        if not section or not section[0]:
+            continue
+        for item in section[0]:
+            try:
+                price = item[1][0][1]
+            except (IndexError, TypeError):
+                continue  # 가격 미정 항목
+            if not isinstance(price, int) or price <= 0:
+                continue
+            flight = item[0]
+            legs = []
+            for leg in flight[2]:
+                dep = leg[8] or []
+                dep_h, dep_m = (dep + [0, 0])[:2]
+                num = leg[22] if len(leg) > 22 and leg[22] else None
+                legs.append({
+                    "from": leg[3], "to": leg[6],
+                    "dep_time": f"{dep_h or 0:02d}:{dep_m or 0:02d}",
+                    "flight": f"{num[0]}{num[1]}" if num else "",
+                })
+            offers.append({"price": price, "airlines": list(flight[1] or []), "legs": legs})
+    return offers
+
+
 def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime) -> Offer | None:
     """조합 하나를 조회해서 가장 싼 항공편을 돌려줘요. 결과가 없으면 None."""
-    from fast_flights import FlightsNotFound, get_flights
+    from fast_flights import fetch_flights_html
 
     q = make_query(cfg, origin, combo)
-    try:
-        results = get_flights(q)
-    except FlightsNotFound:
+    last_exc: Exception | None = None
+    for attempt in range(FETCH_RETRIES):
+        try:
+            html = fetch_flights_html(q)
+            offers = parse_offers(html)
+            break
+        except (GoogleTransientError, OSError, ValueError) as e:
+            last_exc = e
+            time.sleep(RETRY_BACKOFF_SECONDS * (attempt + 1))
+    else:
+        raise RuntimeError(f"{FETCH_RETRIES}번 시도 후 포기: {last_exc}")
+
+    if not offers:
         return None
+    best = min(offers, key=lambda o: o["price"])
 
-    priced = [f for f in results if isinstance(f.price, int) and f.price > 0]
-    if not priced:
-        return None
-    best = min(priced, key=lambda f: f.price)
-
-    # 왕복 결과는 보통 가는 편 구간만 담겨 있어요. 오는 편 시각은 모르면 빈칸.
-    legs = best.flights
-    out_legs = [l for l in legs if l.from_airport.code == origin] or legs[:1]
-    back_legs = [l for l in legs if l.to_airport.code == origin]
-
-    def fmt_time(leg) -> str:
-        h, m = leg.departure.time
-        return f"{h:02d}:{m:02d}"
-
+    # 왕복 결과는 가는 편 구간 목록에 왕복 총액이 붙어 있어요. 오는 편 시각은 알 수 없어요.
+    legs = best["legs"]
     return Offer(
-        price=best.price,
+        price=best["price"],
         depart=combo.depart.isoformat(),
         ret=combo.ret.isoformat(),
         airport=combo.airport,
-        airlines=list(dict.fromkeys(best.airlines)),
-        stops=max(len(out_legs) - 1, 0),
-        depart_time=fmt_time(out_legs[0]) if out_legs else "",
-        return_time=fmt_time(back_legs[0]) if back_legs else "",
+        airlines=list(dict.fromkeys(best["airlines"])),
+        stops=max(len(legs) - 1, 0),
+        depart_time=legs[0]["dep_time"] if legs else "",
+        return_time="",
         url=q.url(),
         seen_at=now.isoformat(timespec="minutes"),
     )
