@@ -1,0 +1,76 @@
+name: 항공권 최저가 감시
+
+on:
+  schedule:
+    # 매일 한국시간 오전 9시 17분 (UTC 00:17). 정각은 GitHub가 붐벼서 조금 비켜 둠.
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "실행 방식"
+        type: choice
+        default: "alert"
+        options:
+          - alert      # 평소처럼: 조건에 맞을 때만 알림
+          - summary    # 조건과 상관없이 현재 최저가 요약을 보냄
+          - dry-run    # 텔레그램으로 보내지 않고 로그에만 출력
+      only:
+        description: "특정 여행지만 (config.json의 name). 비우면 전부"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: flight-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: flight-watch/requirements.txt
+
+      - name: 라이브러리 설치
+        run: pip install -r flight-watch/requirements.txt
+
+      - name: 조회 및 알림
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MODE: ${{ github.event.inputs.mode || 'alert' }}
+          ONLY: ${{ github.event.inputs.only }}
+        run: |
+          args=()
+          case "$MODE" in
+            summary) args+=(--summary) ;;
+            dry-run) args+=(--no-send) ;;
+          esac
+          if [ -n "$ONLY" ]; then args+=(--only "$ONLY"); fi
+          python flight-watch/watch.py "${args[@]}"
+
+      - name: 가격 기록 저장
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flight-watch/history
+          if git diff --cached --quiet; then
+            echo "기록 변경 없음"
+            exit 0
+          fi
+          git commit -m "flight-watch: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') 가격 기록"
+          # 그 사이 다른 커밋이 올라갔으면 받아서 다시 시도
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase && sleep 3
+          done
+          git push

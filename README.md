@@ -1,6 +1,10 @@
 # tools
 several tools that i needed
 
+## ✈️ 항공권 최저가 감시기 (`flight-watch/`)
+
+여행지와 기간을 `flight-watch/config.json`에 적어 두면, 매일 아침 GitHub Actions가 Google Flights 최저가를 찾아보고 기준가 아래이거나 역대 최저가가 갱신되면 텔레그램으로 예매 링크와 함께 알려 줘요. 설정 방법은 [`flight-watch/README.md`](flight-watch/README.md).
+
 ## 아침 피팅룸 (`fitting-room/`)
 
 아침에 옷을 입어 보고 벗는 수고를 줄이려고 만든 웹 앱이에요. 링크만 열면 폰과 PC에서 바로 쓸 수 있어요.
