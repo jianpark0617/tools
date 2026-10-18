@@ -1,0 +1,27 @@
+name: flight-debug (임시)
+on:
+  push:
+    branches: [claude/quirky-brahmagupta-xynomy]
+    paths: [".github/workflows/flight-debug.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r flight-watch/requirements.txt
+      - run: |
+          python - <<'PY'
+          import sys, time
+          sys.path.insert(0, "flight-watch")
+          from fast_flights import FlightQuery, Passengers, create_query, fetch_flights_html
+          from watch import parse_offers
+          for adults in (1, 2, 3):
+              q = create_query(flights=[FlightQuery(date="2026-12-19", from_airport="ICN", to_airport="KIX", max_stops=0),
+                                        FlightQuery(date="2026-12-22", from_airport="KIX", to_airport="ICN", max_stops=0)],
+                               trip="round-trip", passengers=Passengers(adults=adults), language="ko", currency="KRW")
+              offers = sorted(parse_offers(fetch_flights_html(q)), key=lambda o: o["price"])
+              print(f"adults={adults}: n={len(offers)}", [(o['price'], o['airlines'][0], o['legs'][0]['flight']) for o in offers[:4]])
+              time.sleep(3)
+          PY
