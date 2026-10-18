@@ -1,6 +1,8 @@
 name: 항공권 최저가 감시
 
 on:
+  push:  # 임시: 브랜치 테스트용
+    branches: [claude/quirky-brahmagupta-xynomy]
   schedule:
     # 매일 한국시간 오전 9시 17분 (UTC 00:17). 정각은 GitHub가 붐벼서 조금 비켜 둠.
     - cron: "17 0 * * *"
@@ -46,7 +48,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          MODE: ${{ github.event.inputs.mode || 'alert' }}
+          MODE: ${{ github.event.inputs.mode || (github.event_name == 'push' && 'dry-run') || 'alert' }}
           ONLY: ${{ github.event.inputs.only }}
         run: |
           args=()
