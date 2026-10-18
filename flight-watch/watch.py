@@ -85,10 +85,15 @@ class Offer:
     return_time: str
     url: str
     seen_at: str
+    passengers: int = 1  # 가격(price)은 이 인원의 총액이에요
 
     @property
     def nights(self) -> int:
         return (date.fromisoformat(self.ret) - date.fromisoformat(self.depart)).days
+
+    @property
+    def per_person(self) -> int:
+        return round(self.price / max(self.passengers, 1))
 
     @property
     def key_(self) -> str:
@@ -164,7 +169,13 @@ def rotate_combos(combos: list[Combo], cap: int, today: date) -> list[Combo]:
 # ---------------------------------------------------------------------------
 
 
-def make_query(cfg: dict, origin: str, combo: Combo):
+def dest_passengers(cfg: dict, dest: dict) -> int:
+    """여행지별 인원이 있으면 그걸, 없으면 전체 설정의 인원을 써요 (성인 기준)."""
+    n = int(dest.get("passengers") or cfg.get("passengers") or 1)
+    return min(max(n, 1), 9)
+
+
+def make_query(cfg: dict, origin: str, combo: Combo, passengers: int = 1):
     from fast_flights import FlightQuery, Passengers, create_query
 
     max_stops = cfg.get("max_stops")
@@ -177,7 +188,7 @@ def make_query(cfg: dict, origin: str, combo: Combo):
         ],
         trip="round-trip",
         seat=cfg.get("seat", "economy"),
-        passengers=Passengers(adults=int(cfg.get("passengers", 1))),
+        passengers=Passengers(adults=passengers),
         language=cfg.get("language", "ko"),
         currency=cfg.get("currency", "KRW"),
     )
@@ -232,11 +243,15 @@ def parse_offers(html: str) -> list[dict]:
     return offers
 
 
-def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime) -> Offer | None:
-    """조합 하나를 조회해서 가장 싼 항공편을 돌려줘요. 결과가 없으면 None."""
+def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime,
+                   passengers: int = 1) -> Offer | None:
+    """조합 하나를 조회해서 가장 싼 항공편을 돌려줘요. 결과가 없으면 None.
+
+    Google은 인원수만큼 곱한 총액을 돌려줘요. (확인: 1명 285,900 → 2명 571,800)
+    """
     from fast_flights import fetch_flights_html
 
-    q = make_query(cfg, origin, combo)
+    q = make_query(cfg, origin, combo, passengers)
     last_exc: Exception | None = None
     for attempt in range(FETCH_RETRIES):
         try:
@@ -266,6 +281,7 @@ def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime) -> Offer
         return_time="",
         url=q.url(),
         seen_at=now.isoformat(timespec="minutes"),
+        passengers=passengers,
     )
 
 
@@ -304,14 +320,15 @@ def decide_alert(hist: dict, offer: Offer, alert_below: int | None, now: datetim
     best = hist.get("best")
     last = hist.get("last_alert")
 
-    new_low = best is None or offer.price < best["price"]
-    under = alert_below is not None and offer.price <= alert_below
+    # 인원이 바뀌어도 비교가 되도록 전부 1인 가격으로 따져요. 기준가도 1인 기준이에요.
+    new_low = best is None or offer.per_person < per_person_of(best)
+    under = alert_below is not None and offer.per_person <= alert_below
 
     if not new_low and not under:
         return None
 
     if last:
-        cheaper_than_last = offer.price < last["price"] * (1 - REALERT_DROP_RATIO)
+        cheaper_than_last = offer.per_person < per_person_of(last) * (1 - REALERT_DROP_RATIO)
         last_at = datetime.fromisoformat(last["at"])
         stale = (now - last_at) >= timedelta(days=REALERT_AFTER_DAYS)
         if not cheaper_than_last and not (under and stale):
@@ -322,6 +339,11 @@ def decide_alert(hist: dict, offer: Offer, alert_below: int | None, now: datetim
     if under:
         return "기준가 이하"
     return "첫 조회 결과"
+
+
+def per_person_of(rec: dict) -> float:
+    """기록(best, last_alert, combos 항목)의 1인 가격."""
+    return rec["price"] / max(int(rec.get("passengers", 1)), 1)
 
 
 def won(n: int, currency: str) -> str:
@@ -360,10 +382,21 @@ def offer_line(o: Offer, currency: str) -> str:
     stops = "직항" if o.stops == 0 else f"경유 {o.stops}회"
     air = ", ".join(o.airlines) if o.airlines else "항공사 미상"
     t = f" {o.depart_time}" if o.depart_time else ""
+    if o.passengers > 1:
+        price = f"<b>{won(o.price, currency)}</b> (성인 {o.passengers}명 총액, 1인 {won(o.per_person, currency)})"
+    else:
+        price = f"<b>{won(o.price, currency)}</b>"
     return (
         f"{fmt_date(o.depart)}{t} → {fmt_date(o.ret)} · {o.nights}박 · {o.airport}\n"
-        f"💰 <b>{won(o.price, currency)}</b> · {esc(air)} · {stops}"
+        f"💰 {price} · {esc(air)} · {stops}"
     )
+
+
+def price_short(o: Offer, currency: str) -> str:
+    """목록용 짧은 가격: 인원이 여럿이면 총액과 1인 가격을 같이."""
+    if o.passengers > 1:
+        return f"{won(o.price, currency)} (1인 {won(o.per_person, currency)})"
+    return won(o.price, currency)
 
 
 def links_line(origin: str, o: Offer, adults: int) -> str:
@@ -378,15 +411,18 @@ def alert_message(cfg: dict, dest: dict, reason: str, offer: Offer,
                   prev_best: dict | None, top: list[Offer]) -> str:
     origin = cfg["origin"]
     cur = cfg.get("currency", "KRW")
-    adults = int(cfg.get("passengers", 1))
+    adults = offer.passengers
     lines = [f"✈️ <b>{esc(dest['name'])}</b> {reason}!", f"{origin} 출발 왕복 · 성인 {adults}명", ""]
     lines.append(offer_line(offer, cur))
-    if prev_best and prev_best["price"] != offer.price:
-        diff = offer.price - prev_best["price"]
-        pct = diff / prev_best["price"] * 100
-        lines.append(f"(이전 최저 {won(prev_best['price'], cur)}, {pct:+.0f}%)")
+    if prev_best:
+        prev_pp = per_person_of(prev_best)
+        if round(prev_pp) != offer.per_person:
+            pct = (offer.per_person - prev_pp) / prev_pp * 100
+            label = "1인 " if adults > 1 or int(prev_best.get("passengers", 1)) > 1 else ""
+            lines.append(f"(이전 최저 {label}{won(round(prev_pp), cur)}, {pct:+.0f}%)")
     if dest.get("alert_below"):
-        lines.append(f"기준가 {won(int(dest['alert_below']), cur)}")
+        label = "1인 " if adults > 1 else ""
+        lines.append(f"기준가 {label}{won(int(dest['alert_below']), cur)}")
     lines += ["", links_line(origin, offer, adults)]
 
     others = [o for o in top if o.key_ != offer.key_][:3]
@@ -395,7 +431,7 @@ def alert_message(cfg: dict, dest: dict, reason: str, offer: Offer,
         for o in others:
             lines.append(
                 f'• {fmt_date(o.depart)}→{fmt_date(o.ret)} {o.airport} '
-                f'<a href="{esc(o.url)}">{won(o.price, cur)}</a>'
+                f'<a href="{esc(o.url)}">{price_short(o, cur)}</a>'
             )
     return "\n".join(lines)
 
@@ -403,22 +439,24 @@ def alert_message(cfg: dict, dest: dict, reason: str, offer: Offer,
 def summary_message(cfg: dict, per_dest: list[tuple[dict, list[Offer], dict]]) -> str:
     origin = cfg["origin"]
     cur = cfg.get("currency", "KRW")
-    adults = int(cfg.get("passengers", 1))
     today = datetime.now(KST).strftime("%m/%d")
     lines = [f"📋 <b>항공권 최저가 요약</b> ({today}) · {origin} 출발 왕복", ""]
     for dest, offers, hist in per_dest:
-        lines.append(f"<b>{esc(dest['name'])}</b>")
+        pax = dest_passengers(cfg, dest)
+        lines.append(f"<b>{esc(dest['name'])}</b>" + (f" · 성인 {pax}명" if pax > 1 else ""))
         if not offers:
             lines.append("  조회 결과 없음")
         else:
             for o in offers[:3]:
                 lines.append(
                     f'  • {fmt_date(o.depart)}→{fmt_date(o.ret)} {o.airport} '
-                    f'<a href="{esc(o.url)}">{won(o.price, cur)}</a>'
+                    f'<a href="{esc(o.url)}">{price_short(o, cur)}</a>'
                 )
             best = hist.get("best")
             if best:
-                lines.append(f"  역대 최저 {won(best['price'], cur)} ({best.get('depart', '?')}~{best.get('ret', '?')})")
+                bp = int(best.get("passengers", 1))
+                shown = won(best["price"], cur) + (f" (1인 {won(round(per_person_of(best)), cur)})" if bp > 1 else "")
+                lines.append(f"  역대 최저 {shown} ({best.get('depart', '?')}~{best.get('ret', '?')})")
         lines.append("")
     return "\n".join(lines).rstrip()
 
@@ -468,23 +506,24 @@ def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest
         build_combos(dest, today), int(cfg.get("max_queries_per_destination", 60)), today
     )
     interval = float(cfg.get("request_interval_seconds", 2))
+    pax = dest_passengers(cfg, dest)
 
     path = history_path(origin, dest["name"])
     hist = load_history(path)
 
     offers: list[Offer] = []
     failures = 0
-    print(f"[{dest['name']}] {len(combos)}개 조합 조회 시작")
+    print(f"[{dest['name']}] {len(combos)}개 조합 조회 시작 (성인 {pax}명)")
     for i, combo in enumerate(combos):
         try:
-            offer = fetch(cfg, origin, combo, now)
+            offer = fetch(cfg, origin, combo, now, pax)
         except Exception as e:  # 조회 하나 실패해도 나머지는 계속
             failures += 1
             print(f"  ! {combo.key} 실패: {type(e).__name__}: {str(e)[:120]}")
             offer = None
         if offer:
             offers.append(offer)
-            hist["combos"][combo.key] = {"price": offer.price, "at": offer.seen_at,
+            hist["combos"][combo.key] = {"price": offer.price, "passengers": pax, "at": offer.seen_at,
                                          "airlines": offer.airlines, "url": offer.url}
             print(f"  {combo.key}  {offer.price:,}  {', '.join(offer.airlines)}")
         else:
@@ -499,7 +538,7 @@ def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest
     offers.sort(key=lambda o: o.price)
     if offers:
         hist["runs"].append({"at": now.isoformat(timespec="minutes"),
-                             "min_price": offers[0].price,
+                             "min_price": offers[0].price, "passengers": pax,
                              "depart": offers[0].depart, "ret": offers[0].ret,
                              "airport": offers[0].airport, "queried": len(combos)})
     return offers, hist, path, failures
@@ -540,11 +579,12 @@ def main(argv: list[str] | None = None) -> int:
                 msg = alert_message(cfg, dest, reason, top, prev_best, offers)
                 if send_telegram(msg, no_send=args.no_send):
                     sent += 1
-                hist["last_alert"] = {"price": top.price, "at": now.isoformat(timespec="minutes")}
+                hist["last_alert"] = {"price": top.price, "passengers": top.passengers,
+                                      "at": now.isoformat(timespec="minutes")}
             else:
                 print(f"[{dest['name']}] 최저 {top.price:,} — 알림 조건 아님")
 
-        if offers and (hist.get("best") is None or offers[0].price < hist["best"]["price"]):
+        if offers and (hist.get("best") is None or offers[0].per_person < per_person_of(hist["best"])):
             hist["best"] = asdict(offers[0])
         save_history(path, hist)
 

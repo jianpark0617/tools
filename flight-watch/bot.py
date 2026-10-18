@@ -92,6 +92,7 @@ HELP = (
     "/박수 도쿄 2,3 — 박수\n"
     "/요일 도쿄 목,금,토 — 출발 요일 (전부 = 매일)\n"
     "/출발지 GMP — 출발 공항\n"
+    "/인원 2 — 인원 (성인). 여행지만 다르게: /인원 도쿄 4\n"
     "/요약 — 지금 최저가 요약\n"
     "/초기화 — 가격 기록 지우기 (처음부터 다시 비교)\n"
     "\n명령은 몇 분 뒤에 처리돼요. 처리되면 답장이 와요."
@@ -106,6 +107,7 @@ COMMANDS = {
     "박수": "nights", "nights": "nights",
     "요일": "weekdays", "weekdays": "weekdays", "days": "days",
     "출발지": "origin", "origin": "origin",
+    "인원": "pax", "pax": "pax", "passengers": "pax", "adults": "pax",
     "요약": "summary", "summary": "summary",
     "초기화": "reset", "reset": "reset",
     "도움": "help", "help": "help", "start": "help",
@@ -223,8 +225,10 @@ def describe(cfg: dict, d: dict) -> str:
     else:
         when = (f"{d.get('depart_from')}~{d.get('depart_to')} 출발 · "
                 f"{fmt_weekdays(d.get('depart_weekdays'))} · {','.join(map(str, d.get('nights', [3])))}박")
-    below = won(int(d["alert_below"]), cur) if d.get("alert_below") else "없음"
-    return f"<b>{esc(d['name'])}</b> ({', '.join(d['airports'])})\n  {when}\n  기준가 {below}"
+    pax = int(d.get("passengers") or cfg.get("passengers") or 1)
+    below = won(int(d["alert_below"]), cur) + (" (1인)" if pax > 1 else "") if d.get("alert_below") else "없음"
+    who = f" · 성인 {pax}명" if d.get("passengers") else ""
+    return f"<b>{esc(d['name'])}</b> ({', '.join(d['airports'])}){who}\n  {when}\n  기준가 {below}"
 
 
 # ---------------------------------------------------------------------------
@@ -237,14 +241,16 @@ def cmd_list(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
     cur = cfg.get("currency", "KRW")
     if not cfg["destinations"]:
         return f"감시 중인 여행지가 없어요. /추가 로 넣어 보세요.", False
-    lines = [f"<b>감시 중</b> · {origin} 출발 · 성인 {cfg.get('passengers', 1)}명", ""]
+    lines = [f"<b>감시 중</b> · {origin} 출발 · 기본 성인 {cfg.get('passengers', 1)}명", ""]
     for d in cfg["destinations"]:
         lines.append(describe(cfg, d))
         hist = load_history(history_path(origin, d["name"]))
         best = hist.get("best")
         if best:
+            bp = int(best.get("passengers", 1))
+            shown = won(best["price"], cur) + (f" (성인 {bp}명, 1인 {won(round(best['price'] / bp), cur)})" if bp > 1 else "")
             lines.append(
-                f"  역대 최저 <a href=\"{esc(best['url'])}\">{won(best['price'], cur)}</a> "
+                f"  역대 최저 <a href=\"{esc(best['url'])}\">{shown}</a> "
                 f"({best['depart']}~{best['ret']} {best['airport']})"
             )
         lines.append("")
@@ -268,7 +274,7 @@ def cmd_add(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
     opts = {}
     plain = []
     for a in args:
-        m = re.fullmatch(r"(박수|요일|nights|weekdays|days)=(.+)", a)
+        m = re.fullmatch(r"(박수|요일|인원|nights|weekdays|days|pax|adults)=(.+)", a)
         if m:
             opts[m.group(1)] = m.group(2)
         else:
@@ -299,6 +305,9 @@ def cmd_add(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
         dest["alert_below"] = parse_price(" ".join(plain[4:]))
     if "박수" in opts or "nights" in opts:
         dest["nights"] = parse_nights(opts.get("박수") or opts["nights"])
+    pax_raw = opts.get("인원") or opts.get("pax") or opts.get("adults")
+    if pax_raw:
+        dest["passengers"] = parse_pax(pax_raw)
     wd_raw = opts.get("요일") or opts.get("weekdays") or opts.get("days")
     if wd_raw:
         wd = parse_weekdays(wd_raw)
@@ -350,6 +359,31 @@ def cmd_weekdays(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
     return f"{d['name']} 출발 요일을 {fmt_weekdays(wd)}로 바꿨어요.", True
 
 
+def parse_pax(s: str) -> int:
+    t = s.replace("명", "").strip()
+    if not t.isdigit() or not 1 <= int(t) <= 9:
+        raise CommandError("인원은 1~9 사이 숫자예요. 예: /인원 2")
+    return int(t)
+
+
+def cmd_pax(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
+    """/인원 2 → 전체 기본 인원. /인원 도쿄 4 → 도쿄만. /인원 도쿄 기본 → 도쿄 따로 설정 해제."""
+    if not args:
+        raise CommandError("이렇게 보내 주세요: /인원 2  (여행지만 다르게: /인원 도쿄 4)")
+    if len(args) == 1:
+        n = parse_pax(args[0])
+        cfg["passengers"] = n
+        overrides = [d["name"] for d in cfg["destinations"] if d.get("passengers")]
+        note = f"\n({', '.join(overrides)}은(는) 따로 정한 인원을 그대로 써요)" if overrides else ""
+        return f"기본 인원을 성인 {n}명으로 바꿨어요. 기준가는 1인 기준으로 비교해요.{note}", True
+    d = find_dest(cfg, args[0])
+    if args[1] in ("기본", "default", "삭제", "없음"):
+        d.pop("passengers", None)
+        return f"{d['name']}은(는) 기본 인원(성인 {cfg.get('passengers', 1)}명)을 따라요.", True
+    d["passengers"] = parse_pax(args[1])
+    return f"{d['name']} 인원을 성인 {d['passengers']}명으로 바꿨어요. 알림에는 총액과 1인 가격이 같이 나와요.", True
+
+
 def cmd_origin(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
     if not args:
         raise CommandError("이렇게 보내 주세요: /출발지 GMP")
@@ -381,7 +415,7 @@ def cmd_help(cfg: dict, args: list[str], today: date) -> tuple[str, bool]:
 HANDLERS = {
     "list": cmd_list, "price": cmd_price, "add": cmd_add, "del": cmd_del,
     "period": cmd_period, "nights": cmd_nights, "weekdays": cmd_weekdays, "days": cmd_weekdays,
-    "origin": cmd_origin, "help": cmd_help, "reset": cmd_reset,
+    "origin": cmd_origin, "help": cmd_help, "reset": cmd_reset, "pax": cmd_pax,
 }
 
 
