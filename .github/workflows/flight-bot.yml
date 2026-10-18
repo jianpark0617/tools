@@ -1,0 +1,63 @@
+name: 항공권 감시 봇 (텔레그램 명령)
+
+on:
+  push:  # 임시: 브랜치 테스트용
+    branches: [claude/quirky-brahmagupta-xynomy]
+  schedule:
+    # 10분마다 텔레그램 메시지를 확인해요. GitHub 사정에 따라 몇 분 늦어질 수 있어요.
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 감시 워크플로와 같은 그룹: 둘이 동시에 config/history를 커밋하지 않도록 순서대로 돌아요.
+concurrency:
+  group: flight-watch
+  cancel-in-progress: false
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: flight-watch/requirements.txt
+
+      - name: 텔레그램 명령 처리
+        id: bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python flight-watch/bot.py
+
+      - name: 요약 요청이면 조회해서 보내기
+        if: steps.bot.outputs.summary == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          pip install -r flight-watch/requirements.txt
+          python flight-watch/watch.py --summary
+
+      - name: 바뀐 설정과 기록 저장
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flight-watch/config.json flight-watch/bot_state.json flight-watch/history
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+            exit 0
+          fi
+          git commit -m "flight-watch: 텔레그램 명령 반영 ($(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M'))"
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase -X theirs && sleep 3
+          done
+          git push
