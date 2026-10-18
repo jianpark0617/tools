@@ -1,8 +1,6 @@
 name: 항공권 최저가 감시
 
 on:
-  push:  # 임시: 브랜치 테스트용
-    branches: [claude/quirky-brahmagupta-xynomy]
   schedule:
     # 매일 한국시간 오전 9시 17분 (UTC 00:17). 정각은 GitHub가 붐벼서 조금 비켜 둠.
     - cron: "17 0 * * *"
@@ -48,7 +46,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          MODE: ${{ github.event.inputs.mode || (github.event_name == 'push' && 'dry-run') || 'alert' }}
+          MODE: ${{ github.event.inputs.mode || 'alert' }}
           ONLY: ${{ github.event.inputs.only }}
         run: |
           args=()
@@ -70,9 +68,10 @@ jobs:
             exit 0
           fi
           git commit -m "flight-watch: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') 가격 기록"
-          # 그 사이 다른 커밋이 올라갔으면 받아서 다시 시도
+          # 그 사이 다른 커밋이 올라갔으면 받아서 다시 시도.
+          # 기록 파일이 충돌하면 방금 조회한(더 새로운) 쪽을 남긴다.
           for i in 1 2 3; do
             git push && exit 0
-            git pull --rebase && sleep 3
+            git pull --rebase -X theirs && sleep 3
           done
           git push
