@@ -2,16 +2,18 @@ name: 항공권 감시 봇 (텔레그램 명령)
 
 on:
   schedule:
-    # 10분마다 텔레그램 메시지를 확인해요. GitHub 사정에 따라 몇 분 늦어질 수 있어요.
+    # 안전망: 10분마다 텔레그램 메시지를 확인해요. GitHub 예약 실행은 몇 시간씩 밀릴 수 있어서,
+    # 빨리 반응하게 하려면 flight-watch/relay/README.md 의 중계기를 켜세요.
     - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: write
 
-# 감시 워크플로와 같은 그룹: 둘이 동시에 config/history를 커밋하지 않도록 순서대로 돌아요.
+# 봇끼리만 줄을 서요. 감시 조회(몇 분 걸림) 뒤에 기다리지 않도록 그룹을 따로 둬요.
+# 커밋이 겹치면 저장 단계에서 pull --rebase로 풀어요.
 concurrency:
-  group: flight-watch
+  group: flight-bot
   cancel-in-progress: false
 
 jobs:

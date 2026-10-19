@@ -29,6 +29,8 @@ import os
 import re
 import sys
 import traceback
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta
@@ -513,11 +515,20 @@ def tg_get_updates(token: str, offset: int | None) -> list[dict]:
     if offset is not None:
         params["offset"] = str(offset)
     url = f"https://api.telegram.org/bot{token}/getUpdates?" + urllib.parse.urlencode(params)
-    with urllib.request.urlopen(url, timeout=30) as resp:
-        body = json.loads(resp.read().decode())
-    if not body.get("ok"):
-        raise RuntimeError(f"getUpdates 실패: {body}")
-    return body["result"]
+    last: Exception | None = None
+    for attempt in range(4):  # 중계기(relay)가 같은 순간에 읽고 있으면 409가 날 수 있어요
+        try:
+            with urllib.request.urlopen(url, timeout=30) as resp:
+                body = json.loads(resp.read().decode())
+            if not body.get("ok"):
+                raise RuntimeError(f"getUpdates 실패: {body}")
+            return body["result"]
+        except urllib.error.HTTPError as e:
+            if e.code != 409:
+                raise
+            last = e
+            time.sleep(2 * (attempt + 1))
+    raise RuntimeError(f"getUpdates가 계속 409예요: {last}")
 
 
 def load_state() -> dict:
@@ -609,7 +620,7 @@ def main() -> int:
     for i, text in enumerate(texts):
         print(f"  > {text}")
         nxt = texts[i + 1] if i + 1 < len(texts) else None
-        skip_prompt = bool(nxt) and not nxt.strip().startswith("/")
+        skip_prompt = bool(nxt) and (not nxt.strip().startswith("/") or nxt.strip() == text.strip())
         reply, did_change, summary, pending = handle_text(cfg, text, today, pending, skip_prompt)
         changed = changed or did_change
         want_summary = want_summary or summary
