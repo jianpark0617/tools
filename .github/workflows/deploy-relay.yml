@@ -40,10 +40,12 @@ jobs:
             exit 1
           fi
           # 붙여 넣을 때 "Bearer ..."나 예시 명령 전체가 같이 들어가도 토큰만 골라내요.
-          CLOUDFLARE_API_TOKEN=$(printf '%s' "$CF_RAW" | tr -d '\r\n' | sed -E 's/.*Bearer[[:space:]]+//' | grep -oE '[A-Za-z0-9_-]{40}' | head -1 || true)
+          # 토큰 길이를 가정하지 않고, 영문·숫자·_·- 로만 된 가장 긴 조각(32자 이상)을 토큰으로 봐요.
+          CLOUDFLARE_API_TOKEN=$(printf '%s' "$CF_RAW" | tr -d '\r\n' | sed -E 's/.*Bearer[[:space:]]+//' | grep -oE '[A-Za-z0-9_-]{32,}' | awk '{ print length, $0 }' | sort -rn | head -1 | cut -d' ' -f2- || true)
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "::error::CLOUDFLARE_API_TOKEN에서 토큰 모양(영문·숫자 40자)을 찾을 수 없어요. 토큰을 다시 만들어 그 값만 넣어 주세요."; exit 1
+            echo "::error::CLOUDFLARE_API_TOKEN에서 토큰 모양(영문·숫자 32자 이상)을 찾을 수 없어요. 토큰을 다시 만들어 그 값만 넣어 주세요."; exit 1
           fi
+          echo "고른 Cloudflare 토큰 길이: ${#CLOUDFLARE_API_TOKEN}"
           RELAY_GITHUB_TOKEN=$(printf '%s' "$GH_RAW" | tr -d '\r\n' | grep -oE '(github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9]+)' | head -1 || true)
           if [ -z "$RELAY_GITHUB_TOKEN" ]; then
             echo "::error::RELAY_GITHUB_TOKEN에서 토큰 모양(github_pat_로 시작)을 찾을 수 없어요."; exit 1
@@ -52,7 +54,7 @@ jobs:
           echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" >> "$GITHUB_ENV"
           echo "RELAY_GITHUB_TOKEN=$RELAY_GITHUB_TOKEN" >> "$GITHUB_ENV"
           # 값의 모양만 기록해요 (내용은 찍지 않아요). 문제 원인을 찾을 때 써요.
-          echo "CLOUDFLARE_API_TOKEN 원본: 길이 ${#CF_RAW}, 공백 $(printf '%s' "$CF_RAW" | tr -cd ' \t' | wc -c)개, Bearer 포함: $(printf '%s' "$CF_RAW" | grep -c Bearer), curl 포함: $(printf '%s' "$CF_RAW" | grep -c curl), 40자 후보 $(printf '%s' "$CF_RAW" | tr -d '\r\n' | grep -oE '[A-Za-z0-9_-]{40}' | wc -l)개"
+          echo "CLOUDFLARE_API_TOKEN 원본: 길이 ${#CF_RAW}, 공백 $(printf '%s' "$CF_RAW" | tr -cd ' \t' | wc -c)개, Bearer 포함: $(printf '%s' "$CF_RAW" | grep -c Bearer), curl 포함: $(printf '%s' "$CF_RAW" | grep -c curl), 토큰 모양 조각 $(printf '%s' "$CF_RAW" | tr -d '\r\n' | grep -oE '[A-Za-z0-9_-]{32,}' | wc -l)개"
           # GitHub 토큰이 이 저장소의 워크플로를 돌릴 수 있는지 미리 확인
           code=$(curl -s -o /tmp/gh.json -w "%{http_code}" \
             -H "Authorization: Bearer $RELAY_GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
