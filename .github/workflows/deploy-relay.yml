@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       WRANGLER_SEND_METRICS: "false"
       WORKER_NAME: flight-watch-relay
       KV_TITLE: flight-watch-state
@@ -28,17 +27,33 @@ jobs:
 
       - name: 설정 확인
         env:
-          RELAY_GITHUB_TOKEN: ${{ secrets.RELAY_GITHUB_TOKEN }}
+          CF_RAW: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GH_RAW: ${{ secrets.RELAY_GITHUB_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: |
           missing=""
-          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
-          [ -n "$RELAY_GITHUB_TOKEN" ] || missing="$missing RELAY_GITHUB_TOKEN"
+          [ -n "$CF_RAW" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "$GH_RAW" ] || missing="$missing RELAY_GITHUB_TOKEN"
           [ -n "$TELEGRAM_BOT_TOKEN" ] || missing="$missing TELEGRAM_BOT_TOKEN"
           if [ -n "$missing" ]; then
             echo "::error::저장소 Secrets에 다음이 없어요:$missing  (Settings → Secrets and variables → Actions)"
             exit 1
           fi
+          # 붙여 넣을 때 "Bearer ..."나 예시 명령 전체가 같이 들어가도 토큰만 골라내요.
+          CLOUDFLARE_API_TOKEN=$(printf '%s' "$CF_RAW" | tr -d '\r\n' | sed -E 's/.*Bearer[[:space:]]+//' | grep -oE '[A-Za-z0-9_-]{40}' | head -1 || true)
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN에서 토큰 모양(영문·숫자 40자)을 찾을 수 없어요. 토큰을 다시 만들어 그 값만 넣어 주세요."; exit 1
+          fi
+          RELAY_GITHUB_TOKEN=$(printf '%s' "$GH_RAW" | tr -d '\r\n' | grep -oE '(github_pat_[A-Za-z0-9_]+|ghp_[A-Za-z0-9]+)' | head -1 || true)
+          if [ -z "$RELAY_GITHUB_TOKEN" ]; then
+            echo "::error::RELAY_GITHUB_TOKEN에서 토큰 모양(github_pat_로 시작)을 찾을 수 없어요."; exit 1
+          fi
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"; echo "::add-mask::$RELAY_GITHUB_TOKEN"
+          echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" >> "$GITHUB_ENV"
+          echo "RELAY_GITHUB_TOKEN=$RELAY_GITHUB_TOKEN" >> "$GITHUB_ENV"
+          verify=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/user/tokens/verify")
+          echo "$verify" | grep -q '"success":true' || { echo "::error::Cloudflare 토큰 검증 실패. 토큰을 다시 확인하세요."; echo "$verify"; exit 1; }
+          echo "Cloudflare 토큰 OK"
           # GitHub 토큰이 이 저장소의 워크플로를 돌릴 수 있는지 미리 확인
           code=$(curl -s -o /tmp/gh.json -w "%{http_code}" \
             -H "Authorization: Bearer $RELAY_GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
@@ -112,7 +127,6 @@ jobs:
       - name: 비밀값 넣기
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
-          RELAY_GITHUB_TOKEN: ${{ secrets.RELAY_GITHUB_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         working-directory: flight-watch/relay
