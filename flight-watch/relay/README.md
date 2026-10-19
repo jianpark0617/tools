@@ -6,7 +6,49 @@
 
 선택 사항이에요. 안 켜도 봇은 느리게나마 돌아가요.
 
-## 1. GitHub 토큰 만들기 (3분)
+## 자동 설치 (추천, 5분)
+
+Cloudflare 화면을 돌아다닐 필요 없이, GitHub Actions가 대신 설치해요. 토큰 두 개만 만들면 돼요.
+
+### 1. Cloudflare API 토큰
+
+1. https://dash.cloudflare.com/profile/api-tokens 를 열어요 (로그인 필요).
+2. **Create Token** → 목록에서 **Edit Cloudflare Workers** 오른쪽의 **Use template**.
+3. 아무것도 바꾸지 말고 아래 **Continue to summary** → **Create Token**.
+4. 나오는 긴 문자열을 복사해 둬요. 이 화면을 벗어나면 다시 못 봐요.
+
+### 2. GitHub 토큰
+
+1. https://github.com/settings/personal-access-tokens/new 를 열어요.
+2. **Token name**: `flight-watch-relay`. **Expiration**: 가능한 한 길게.
+3. **Repository access**: *Only select repositories* → `tools` 선택.
+4. **Permissions → Repository permissions**에서 **Actions**를 찾아 *Read and write*. 다른 건 그대로.
+5. 맨 아래 **Generate token** → `github_pat_...` 복사.
+
+### 3. 저장소 Secrets에 넣기
+
+https://github.com/jianpark0617/tools/settings/secrets/actions (Fork면 자기 저장소) → **New repository secret** 두 번:
+
+| Name | Secret |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | 1번 토큰 |
+| `RELAY_GITHUB_TOKEN` | 2번 토큰 |
+
+(`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`는 이미 있어요.)
+
+### 4. 설치 실행
+
+**Actions → "중계기 설치 (Cloudflare Worker)" → Run workflow**. 1~2분 뒤 초록색이면 끝이에요. 텔레그램 봇에게 `/list`를 보내면 1~2분 안에 답장이 와요.
+
+빨간색이면 실패한 단계의 로그에 한글로 원인이 적혀 있어요. 토큰을 바꿔 넣었으면 다시 Run workflow 하면 돼요. 여러 번 돌려도 괜찮아요.
+
+---
+
+## 수동 설치 (Cloudflare 화면에서 직접)
+
+자동 설치가 안 될 때만 보세요.
+
+### 1. GitHub 토큰 만들기 (3분)
 
 Worker가 GitHub에 "워크플로 돌려"라고 말하려면 열쇠가 필요해요.
 
@@ -17,13 +59,13 @@ Worker가 GitHub에 "워크플로 돌려"라고 말하려면 열쇠가 필요해
 5. **Permissions → Repository permissions → Actions**: *Read and write*. 다른 권한은 건드리지 않아요.
 6. **Generate token**을 누르고 나오는 `github_pat_...` 문자열을 복사해 둬요. 이 화면을 벗어나면 다시 못 봐요.
 
-## 2. Worker 만들기 (5분)
+### 2. Worker 만들기 (5분)
 
 1. https://dash.cloudflare.com 에 로그인해요(없으면 무료 가입).
 2. **Workers & Pages → Create → Create Worker**. 이름은 `flight-watch-relay`. **Deploy**.
 3. **Edit code**를 눌러 기존 코드를 전부 지우고, 이 폴더의 `worker.js` 내용을 붙여 넣은 뒤 **Deploy**.
 
-## 3. 저장 공간(KV) 연결
+### 3. 저장 공간(KV) 연결
 
 "마지막으로 깨운 메시지 번호"를 기억하는 데 써요.
 
@@ -33,7 +75,7 @@ Worker가 GitHub에 "워크플로 돌려"라고 말하려면 열쇠가 필요해
    - KV namespace: `flight-watch-state`
 3. **Deploy**(또는 Save).
 
-## 4. 비밀값 넣기
+### 4. 비밀값 넣기
 
 Worker **Settings → Variables and Secrets → Add**에서 하나씩:
 
@@ -47,11 +89,11 @@ Worker **Settings → Variables and Secrets → Add**에서 하나씩:
 
 넣은 뒤 **Deploy**.
 
-## 5. 1분마다 돌게 하기
+### 5. 1분마다 돌게 하기
 
 Worker **Settings → Triggers → Cron Triggers → Add**: `* * * * *` 입력 후 저장.
 
-## 6. 확인
+### 6. 확인
 
 텔레그램 봇에게 `/list`를 보내고 1~2분 기다려요. 답장이 오면 끝이에요. GitHub 저장소 **Actions** 탭에 "항공권 감시 봇" 실행이 새로 생긴 것도 볼 수 있어요.
 
