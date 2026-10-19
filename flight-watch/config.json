@@ -25,7 +25,8 @@
         3,
         4
       ],
-      "alert_below": 300000
+      "alert_below": 300000,
+      "passengers": 2
     },
     {
       "name": "오사카",
