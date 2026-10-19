@@ -31,7 +31,7 @@ import sys
 import traceback
 import urllib.parse
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -419,25 +419,58 @@ HANDLERS = {
 }
 
 
-def handle_text(cfg: dict, text: str, today: date) -> tuple[str, bool, bool]:
-    """메시지 하나를 처리해요. (답장, 설정 변경 여부, 요약 요청 여부)"""
+# 텔레그램 메뉴에서 명령을 고르면 인자 없이 바로 전송돼요. 그러면 뭘 적을지 물어보고,
+# 다음에 오는 메시지를 그 답으로 받아요. (state["pending"]에 기다리는 명령을 저장)
+PENDING_TTL_MINUTES = 60
+
+
+def ask_for_args(cfg: dict, kind: str) -> str:
+    names = ", ".join(d["name"] for d in cfg["destinations"]) or "(아직 없음)"
+    first = cfg["destinations"][0]["name"] if cfg["destinations"] else "도쿄"
+    prompts = {
+        "price": f"어느 여행지 기준가를 얼마로 바꿀까요?\n예: {first} 35만\n여행지: {names}",
+        "add": "추가할 여행지를 이렇게 적어 주세요:\n이름 공항 출발시작 출발끝 [기준가]\n예: 방콕 BKK 12-01 2-28 45만\n공항을 모르면 ? : 후쿠오카 ? 12-01 2-28",
+        "del": f"어느 여행지를 뺄까요?\n여행지: {names}",
+        "period": f"어느 여행지의 출발 기간을 언제로 바꿀까요?\n예: {first} 2027-01-01 2027-03-31",
+        "nights": f"어느 여행지를 몇 박으로 바꿀까요?\n예: {first} 2,3",
+        "weekdays": f"어느 여행지의 출발 요일을 바꿀까요?\n예: {first} 목,금,토  (매일이면 전부)",
+        "days": f"어느 여행지의 출발 요일을 바꿀까요?\n예: {first} 목,금,토  (매일이면 전부)",
+        "origin": "출발 공항 코드를 적어 주세요.\n예: GMP (인천 ICN, 김포 GMP, 부산 PUS)",
+        "pax": f"몇 명인가요? 숫자만 적으면 기본 인원이 바뀌어요.\n예: 2\n여행지만 다르게: {first} 4",
+    }
+    return prompts[kind] + "\n\n다음에 보내는 메시지를 그 답으로 받아요. 취소하려면 아무 명령이나 새로 보내세요."
+
+
+def handle_text(cfg: dict, text: str, today: date, pending: str | None = None,
+                skip_prompt: bool = False) -> tuple[str, bool, bool, str | None]:
+    """메시지 하나를 처리해요. (답장, 설정 변경 여부, 요약 요청 여부, 다음에 기다릴 명령)
+
+    pending: 직전에 인자 없이 온 명령. 이번 메시지가 명령이 아니면 그 인자로 써요.
+    skip_prompt: 바로 뒤에 답이 이어져 오는 게 보이면 물어보는 답장을 생략해요.
+    """
     text = text.strip()
+    is_command = text.startswith("/")
+    if pending and not is_command and text:
+        text = f"/{pending} {text}"
+        is_command = True
     parts = text.lstrip("/").split()
     if not parts:
-        return HELP, False, False
+        return HELP, False, False, None
     word = parts[0].split("@")[0].lower()
     kind = COMMANDS.get(word)
     if kind is None:
-        if not text.startswith("/"):
-            return "명령어는 /로 시작해요. /도움 을 보내 보세요.", False, False
-        return f"모르는 명령어예요: /{esc(parts[0])}\n\n{HELP}", False, False
+        if not is_command:
+            return "명령어는 /로 시작해요. /도움 을 보내 보세요.", False, False, None
+        return f"모르는 명령어예요: /{esc(parts[0])}\n\n{HELP}", False, False, None
     if kind == "summary":
-        return "지금 최저가를 조회해서 요약을 보낼게요. 3~5분 걸려요.", False, True
+        return "지금 최저가를 조회해서 요약을 보낼게요. 3~5분 걸려요.", False, True, None
+    if not parts[1:] and kind in ("price", "add", "del", "period", "nights", "weekdays", "days", "origin", "pax"):
+        return ("" if skip_prompt else ask_for_args(cfg, kind)), False, False, kind
     try:
         reply, changed = HANDLERS[kind](cfg, parts[1:], today)
     except CommandError as e:
-        return f"⚠️ {esc(str(e))}", False, False
-    return reply, changed, False
+        return f"⚠️ {esc(str(e))}", False, False, None
+    return reply, changed, False, None
 
 
 # ---------------------------------------------------------------------------
@@ -548,6 +581,9 @@ def main() -> int:
     print(f"새 업데이트 {len(updates)}건")
     changed = False
     want_summary = False
+
+    # 내 채팅의 글 메시지만 순서대로
+    texts: list[str] = []
     for u in updates:
         state["offset"] = u["update_id"] + 1
         msg = u.get("message") or {}
@@ -557,15 +593,35 @@ def main() -> int:
         if str(msg.get("chat", {}).get("id")) != chat_id:
             print(f"  다른 채팅({msg.get('chat', {}).get('id')})의 메시지는 무시")
             continue
+        texts.append(text)
+
+    # 지난번에 인자 없이 온 명령이 있으면 이어받아요 (너무 오래됐으면 버려요)
+    pending = None
+    pend = state.get("pending")
+    if pend:
+        try:
+            age = datetime.now(KST) - datetime.fromisoformat(pend["at"])
+        except (KeyError, ValueError):
+            age = timedelta(days=1)
+        if age <= timedelta(minutes=PENDING_TTL_MINUTES):
+            pending = pend["kind"]
+
+    for i, text in enumerate(texts):
         print(f"  > {text}")
-        reply, did_change, summary = handle_text(cfg, text, today)
+        nxt = texts[i + 1] if i + 1 < len(texts) else None
+        skip_prompt = bool(nxt) and not nxt.strip().startswith("/")
+        reply, did_change, summary, pending = handle_text(cfg, text, today, pending, skip_prompt)
         changed = changed or did_change
         want_summary = want_summary or summary
-        print(f"  < {reply.splitlines()[0] if reply else ''}")
+        if not reply:
+            continue
+        print(f"  < {reply.splitlines()[0]}")
         try:
             send_telegram(reply)
         except Exception as e:  # 답장 실패해도 다음 메시지는 처리
             print(f"  ! 답장 실패: {e}")
+
+    state["pending"] = {"kind": pending, "at": datetime.now(KST).isoformat(timespec="minutes")} if pending else None
 
     if changed:
         save_config(cfg)
