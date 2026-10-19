@@ -86,6 +86,14 @@ class CommandError extends Error {}
 // ---------------------------------------------------------------------------
 
 export default {
+  // 몇 시간마다 "빠른 조회"를 깨워요 (wrangler.toml 의 cron). GitHub 예약 실행은 몇 시간씩
+  // 밀리지만 Cloudflare 타이머는 정확해서, 잠깐 떴다 사라지는 특가를 잡는 데 써요.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      ghDispatch(env, WATCH_WORKFLOW, { mode: "quick" }).catch((e) => console.error("빠른 조회 깨우기 실패:", e))
+    );
+  },
+
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/telegram") {
