@@ -6,6 +6,12 @@ name: 중계기 설치 (Cloudflare Worker)
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "install = 설치/업데이트, diagnose = 왜 안 되는지 점검"
+        type: choice
+        default: install
+        options: [install, diagnose]
 
 permissions:
   contents: read
@@ -101,6 +107,7 @@ jobs:
           echo "KV OK"
 
       - name: Worker 올리기
+        if: inputs.mode != 'diagnose'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
           KV_ID: ${{ steps.kv.outputs.kv_id }}
@@ -111,6 +118,9 @@ jobs:
           main = "worker.js"
           compatibility_date = "2025-01-01"
           workers_dev = false
+
+          [observability]
+          enabled = true
 
           [triggers]
           crons = ["* * * * *"]
@@ -126,6 +136,7 @@ jobs:
           npx wrangler deploy
 
       - name: 비밀값 넣기
+        if: inputs.mode != 'diagnose'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -138,3 +149,44 @@ jobs:
             printf '%s' "$TELEGRAM_CHAT_ID" | npx wrangler secret put TELEGRAM_CHAT_ID
           fi
           echo "설치 완료. 이제 텔레그램 봇에게 /list 를 보내면 1~2분 안에 답장이 와요."
+
+      - name: 진단
+        if: inputs.mode == 'diagnose'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          KV_ID: ${{ steps.kv.outputs.kv_id }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        working-directory: flight-watch/relay
+        run: |
+          echo "### 1) 텔레그램에 아직 봇이 읽지 않은 메시지"
+          curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getUpdates?timeout=0" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);if(!j.ok){console.log("오류:",JSON.stringify(j));return}console.log("대기 중:",j.result.length,"건");for(const u of j.result){const m=u.message||{};console.log(" - update_id",u.update_id,"chat",m.chat&&m.chat.id,"내 채팅:",String(m.chat&&m.chat.id)===process.env.TELEGRAM_CHAT_ID,"길이",(m.text||"").length)}})'
+          echo
+          echo "### 2) Worker가 KV에 남긴 값"
+          for k in last_dispatched_id last_dispatched_at; do
+            v=$(npx wrangler kv key get --namespace-id "$KV_ID" --remote "$k" 2>/dev/null || true)
+            echo " - $k = ${v:-(없음)}"
+          done
+          echo
+          echo "### 3) Cloudflare에 등록된 Worker와 타이머"
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME/schedules" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log(j.success?"타이머: "+JSON.stringify((j.result.schedules||[]).map(x=>x.cron)):"오류: "+JSON.stringify(j.errors))})'
+          curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME/settings" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);if(!j.success){console.log("settings 오류:",JSON.stringify(j.errors));return}console.log("바인딩:",JSON.stringify((j.result.bindings||[]).map(b=>b.type+":"+b.name)))})'
+          echo
+          echo "### 4) 최근 Worker 실행 기록 (관측 로그, 켜져 있을 때만)"
+          now=$(date +%s%3N); from=$((now - 30*60*1000))
+          curl -s -X POST -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/observability/telemetry/query" \
+            -d "{\"queryId\":\"diag\",\"timeframe\":{\"from\":$from,\"to\":$now},\"parameters\":{\"datasets\":[\"cloudflare-workers\"],\"filters\":[{\"key\":\"\$metadata.service\",\"operation\":\"eq\",\"value\":\"$WORKER_NAME\",\"type\":\"string\"}],\"limit\":20},\"view\":\"events\"}" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);if(!j.success){console.log("조회 불가:",JSON.stringify(j.errors).slice(0,300));return}const ev=(j.result&&j.result.events&&j.result.events.events)||[];console.log("최근 30분 실행:",ev.length,"건");for(const e of ev.slice(0,10)){const m=e.$metadata||{};console.log(" -",new Date(e.timestamp).toISOString(),m.trigger||m.type||"",m.outcome||"",m.message||"",JSON.stringify(e.$workers&&e.$workers.event&&e.$workers.event.scheduledTime||"").slice(0,40))}}catch(err){console.log("파싱 실패:",s.slice(0,300))}})'
+          echo
+          echo "### 5) GitHub 깨우기 권한 직접 시험 (성공하면 봇 실행이 하나 생겨요)"
+          code=$(curl -s -o /tmp/d.txt -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer $RELAY_GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/flight-bot.yml/dispatches" \
+            -d '{"ref":"${{ github.event.repository.default_branch }}"}')
+          echo "HTTP $code $( [ "$code" = "204" ] && echo '→ 성공' || cat /tmp/d.txt )"
