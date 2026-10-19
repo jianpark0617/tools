@@ -191,7 +191,7 @@ async function withConfig(env, fn) {
 }
 
 // ---------------------------------------------------------------------------
-// 명령 해석 (flight-watch/bot.py 와 같은 규칙)
+// 명령 해석
 // ---------------------------------------------------------------------------
 
 export function handleText(cfg, rawText, today, pending) {
@@ -585,4 +585,3 @@ async function savePending(env, kind) {
   else await env.STATE.delete("pending");
 }
 
-export const __test = { parsePrice, parseDate, parseWeekdays, parseNights, parseAirports, describe, withHistory };

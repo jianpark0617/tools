@@ -82,7 +82,6 @@ class Offer:
     airlines: list[str]
     stops: int
     depart_time: str
-    return_time: str
     url: str
     seen_at: str
     passengers: int = 1  # 가격(price)은 이 인원의 총액이에요
@@ -268,7 +267,7 @@ def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime,
         return None
     best = min(offers, key=lambda o: o["price"])
 
-    # 왕복 결과는 가는 편 구간 목록에 왕복 총액이 붙어 있어요. 오는 편 시각은 알 수 없어요.
+    # 왕복 결과는 가는 편 구간 목록에 왕복 총액이 붙어 있어요.
     legs = best["legs"]
     return Offer(
         price=best["price"],
@@ -278,7 +277,6 @@ def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime,
         airlines=list(dict.fromkeys(best["airlines"])),
         stops=max(len(legs) - 1, 0),
         depart_time=legs[0]["dep_time"] if legs else "",
-        return_time="",
         url=q.url(),
         seen_at=now.isoformat(timespec="minutes"),
         passengers=passengers,
@@ -561,13 +559,12 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"'{args.only}' 여행지가 config.json에 없어요.")
 
     per_dest: list[tuple[dict, list[Offer], dict]] = []
-    total_failures = total_queries = 0
+    total_failures = 0
     sent = 0
 
     for dest in dests:
         offers, hist, path, failures = watch_destination(cfg, dest, now)
         total_failures += failures
-        total_queries += len(offers) + failures
         per_dest.append((dest, offers, hist))
 
         if offers and not args.summary:
