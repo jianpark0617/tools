@@ -51,9 +51,8 @@ jobs:
           echo "::add-mask::$CLOUDFLARE_API_TOKEN"; echo "::add-mask::$RELAY_GITHUB_TOKEN"
           echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN" >> "$GITHUB_ENV"
           echo "RELAY_GITHUB_TOKEN=$RELAY_GITHUB_TOKEN" >> "$GITHUB_ENV"
-          verify=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/user/tokens/verify")
-          echo "$verify" | grep -q '"success":true' || { echo "::error::Cloudflare 토큰 검증 실패. 토큰을 다시 확인하세요."; echo "$verify"; exit 1; }
-          echo "Cloudflare 토큰 OK"
+          # 값의 모양만 기록해요 (내용은 찍지 않아요). 문제 원인을 찾을 때 써요.
+          echo "CLOUDFLARE_API_TOKEN 원본: 길이 ${#CF_RAW}, 공백 $(printf '%s' "$CF_RAW" | tr -cd ' \t' | wc -c)개, Bearer 포함: $(printf '%s' "$CF_RAW" | grep -c Bearer), curl 포함: $(printf '%s' "$CF_RAW" | grep -c curl), 40자 후보 $(printf '%s' "$CF_RAW" | tr -d '\r\n' | grep -oE '[A-Za-z0-9_-]{40}' | wc -l)개"
           # GitHub 토큰이 이 저장소의 워크플로를 돌릴 수 있는지 미리 확인
           code=$(curl -s -o /tmp/gh.json -w "%{http_code}" \
             -H "Authorization: Bearer $RELAY_GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
@@ -70,7 +69,7 @@ jobs:
           resp=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts")
           ok=$(echo "$resp" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log(j.success?"1":"0")})')
           if [ "$ok" != "1" ]; then
-            echo "::error::Cloudflare API 토큰이 동작하지 않아요. 토큰을 다시 확인하세요."; echo "$resp"; exit 1
+            echo "::error::Cloudflare API 토큰이 동작하지 않아요. 토큰을 만든 직후 화면의 Copy 버튼으로 복사한 값인지, 템플릿이 'Edit Cloudflare Workers'인지 확인하세요."; echo "$resp"; exit 1
           fi
           n=$(echo "$resp" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).result.length))')
           if [ "$n" = "0" ]; then
