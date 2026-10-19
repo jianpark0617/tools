@@ -187,6 +187,7 @@ jobs:
             {"command":"add","description":"여행지 추가: /add 방콕 BKK 12-01 2-28 45만"},
             {"command":"del","description":"여행지 빼기: /del 방콕"},
             {"command":"pax","description":"인원: /pax 2 (여행지만: /pax 도쿄 4)"},
+            {"command":"airlines","description":"항공사: /airlines 저가제외 (≈수하물 포함) · KE,OZ · -7C · 전부"},
             {"command":"period","description":"출발 기간: /period 도쿄 2027-01-01 2027-03-31"},
             {"command":"nights","description":"박수: /nights 도쿄 2,3"},
             {"command":"days","description":"출발 요일: /days 도쿄 목,금,토 (매일은 전부)"},

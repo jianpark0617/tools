@@ -168,6 +168,41 @@ def rotate_combos(combos: list[Combo], cap: int, today: date) -> list[Combo]:
 # ---------------------------------------------------------------------------
 
 
+def airline_filter(cfg: dict, dest: dict) -> tuple[set[str], set[str]]:
+    """(포함할 항공사 코드, 제외할 항공사 코드). 여행지 설정이 있으면 그걸, 없으면 전체 설정을 써요.
+
+    Google은 한국·일본 저가항공사의 수하물 요금을 모르기 때문에 "수하물 포함 가격"을 직접 줄 수
+    없어요. 대신 저가항공사를 빼면 남는 대형항공사 요금은 보통 위탁수하물이 포함이라, 그 용도로 써요.
+    """
+    def pick(key: str) -> set[str]:
+        v = dest.get(key) if key in dest else cfg.get(key)
+        return {str(c).upper() for c in (v or [])}
+    return pick("airlines"), pick("exclude_airlines")
+
+
+def airline_code(leg: dict) -> str:
+    """구간의 항공사 코드 (편명 '7C1393' → '7C')."""
+    return (leg.get("flight") or "")[:2].upper()
+
+
+def passes_airline_filter(offer: dict, include: set[str], exclude: set[str]) -> bool:
+    codes = {airline_code(l) for l in offer.get("legs", []) if l.get("flight")}
+    if include and not codes <= include:
+        return False
+    if exclude and codes & exclude:
+        return False
+    return True
+
+
+def filter_label(cfg: dict, dest: dict) -> str:
+    include, exclude = airline_filter(cfg, dest)
+    if include:
+        return ",".join(sorted(include)) + "만"
+    if exclude:
+        return "저가항공 제외" if len(exclude) >= 8 else ",".join(sorted(exclude)) + " 제외"
+    return ""
+
+
 def dest_passengers(cfg: dict, dest: dict) -> int:
     """여행지별 인원이 있으면 그걸, 없으면 전체 설정의 인원을 써요 (성인 기준)."""
     n = int(dest.get("passengers") or cfg.get("passengers") or 1)
@@ -243,7 +278,7 @@ def parse_offers(html: str) -> list[dict]:
 
 
 def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime,
-                   passengers: int = 1) -> Offer | None:
+                   passengers: int = 1, airlines: tuple[set[str], set[str]] | None = None) -> Offer | None:
     """조합 하나를 조회해서 가장 싼 항공편을 돌려줘요. 결과가 없으면 None.
 
     Google은 인원수만큼 곱한 총액을 돌려줘요. (확인: 1명 285,900 → 2명 571,800)
@@ -265,6 +300,10 @@ def fetch_cheapest(cfg: dict, origin: str, combo: Combo, now: datetime,
 
     if not offers:
         return None
+    if airlines:
+        offers = [o for o in offers if passes_airline_filter(o, *airlines)]
+        if not offers:
+            return None
     best = min(offers, key=lambda o: o["price"])
 
     # 왕복 결과는 가는 편 구간 목록에 왕복 총액이 붙어 있어요.
@@ -410,7 +449,9 @@ def alert_message(cfg: dict, dest: dict, reason: str, offer: Offer,
     origin = cfg["origin"]
     cur = cfg.get("currency", "KRW")
     adults = offer.passengers
-    lines = [f"✈️ <b>{esc(dest['name'])}</b> {reason}!", f"{origin} 출발 왕복 · 성인 {adults}명", ""]
+    fl = filter_label(cfg, dest)
+    lines = [f"✈️ <b>{esc(dest['name'])}</b> {reason}!",
+             f"{origin} 출발 왕복 · 성인 {adults}명" + (f" · {esc(fl)}" if fl else ""), ""]
     lines.append(offer_line(offer, cur))
     if prev_best:
         prev_pp = per_person_of(prev_best)
@@ -441,7 +482,8 @@ def summary_message(cfg: dict, per_dest: list[tuple[dict, list[Offer], dict]]) -
     lines = [f"📋 <b>항공권 최저가 요약</b> ({today}) · {origin} 출발 왕복", ""]
     for dest, offers, hist in per_dest:
         pax = dest_passengers(cfg, dest)
-        lines.append(f"<b>{esc(dest['name'])}</b>" + (f" · 성인 {pax}명" if pax > 1 else ""))
+        fl = filter_label(cfg, dest)
+        lines.append(f"<b>{esc(dest['name'])}</b>" + (f" · 성인 {pax}명" if pax > 1 else "") + (f" · {esc(fl)}" if fl else ""))
         if not offers:
             lines.append("  조회 결과 없음")
         else:
@@ -505,6 +547,7 @@ def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest
     )
     interval = float(cfg.get("request_interval_seconds", 2))
     pax = dest_passengers(cfg, dest)
+    airlines = airline_filter(cfg, dest)
 
     path = history_path(origin, dest["name"])
     hist = load_history(path)
@@ -514,7 +557,7 @@ def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest
     print(f"[{dest['name']}] {len(combos)}개 조합 조회 시작 (성인 {pax}명)")
     for i, combo in enumerate(combos):
         try:
-            offer = fetch(cfg, origin, combo, now, pax)
+            offer = fetch(cfg, origin, combo, now, pax, airlines)
         except Exception as e:  # 조회 하나 실패해도 나머지는 계속
             failures += 1
             print(f"  ! {combo.key} 실패: {type(e).__name__}: {str(e)[:120]}")

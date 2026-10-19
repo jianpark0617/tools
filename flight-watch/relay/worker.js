@@ -38,6 +38,11 @@ const AIRPORTS = {
   제주: ["CJU"], 대구: ["TAE"], 청주: ["CJJ"],
 };
 
+// "저가제외"에 쓰는 저가항공사 코드. 대형항공사 요금은 보통 위탁수하물이 포함이라,
+// 저가항공사를 빼면 "수하물 포함 최저가"에 가까워져요. (Google은 저가항공 수하물 요금을 몰라요)
+const LCC = ["7C", "LJ", "TW", "RS", "BX", "ZE", "YP", "MM", "ZG", "GK", "IJ", "FD", "XJ", "VZ", "SL",
+  "VJ", "5J", "Z2", "AK", "D7", "TR", "3K", "QZ", "OD", "DD", "NX"];
+
 const HELP =
   "<b>항공권 감시 봇 명령어</b>\n" +
   "/목록 — 감시 중인 여행지와 기준가\n" +
@@ -51,6 +56,8 @@ const HELP =
   "/요일 도쿄 목,금,토 — 출발 요일 (전부 = 매일)\n" +
   "/출발지 GMP — 출발 공항\n" +
   "/인원 2 — 인원 (성인). 여행지만 다르게: /인원 도쿄 4\n" +
+  "/항공사 저가제외 — 저가항공 빼고 보기 (≈ 위탁수하물 포함 요금). 여행지만: /항공사 도쿄 저가제외\n" +
+  "   /항공사 KE,OZ — 이 항공사만  /항공사 -7C,-LJ — 이 항공사 빼고  /항공사 전부 — 필터 해제\n" +
   "/요약 — 지금 최저가 요약 (조회에 3~5분)\n" +
   "/초기화 — 가격 기록 지우기 (처음부터 다시 비교)\n" +
   "\n영문도 돼요: /list /price /add /del /pax /period /nights /days /origin /summary /reset /help";
@@ -65,11 +72,12 @@ const COMMANDS = {
   요일: "days", weekdays: "days", days: "days",
   출발지: "origin", origin: "origin",
   인원: "pax", pax: "pax", passengers: "pax", adults: "pax",
+  항공사: "airlines", airlines: "airlines", airline: "airlines", 수하물: "airlines", bags: "airlines",
   요약: "summary", summary: "summary",
   초기화: "reset", reset: "reset",
   도움: "help", help: "help", start: "help",
 };
-const NEEDS_ARGS = new Set(["price", "add", "del", "period", "nights", "days", "origin", "pax"]);
+const NEEDS_ARGS = new Set(["price", "add", "del", "period", "nights", "days", "origin", "pax", "airlines"]);
 
 class CommandError extends Error {}
 
@@ -236,6 +244,7 @@ function askForArgs(cfg, kind) {
     days: `어느 여행지의 출발 요일을 바꿀까요?\n예: ${first} 목,금,토  (매일이면 전부)`,
     origin: "출발 공항 코드를 적어 주세요.\n예: GMP (인천 ICN, 김포 GMP, 부산 PUS)",
     pax: `몇 명인가요? 숫자만 적으면 기본 인원이 바뀌어요.\n예: 2\n여행지만 다르게: ${first} 4`,
+    airlines: `어떤 항공사로 볼까요?\n저가제외 — 저가항공 빼고 (≈ 위탁수하물 포함 요금)\nKE,OZ — 이 항공사만\n-7C,-LJ — 이 항공사 빼고\n전부 — 필터 해제\n여행지만 다르게: ${first} 저가제외`,
   }[kind];
   return p + "\n\n다음에 보내는 메시지를 그 답으로 받아요. 취소하려면 아무 명령이나 새로 보내세요.";
 }
@@ -244,7 +253,8 @@ const HANDLERS = {
   list(cfg) {
     const origin = cfg.origin;
     if (!cfg.destinations.length) return { reply: "감시 중인 여행지가 없어요. /추가 로 넣어 보세요." };
-    const lines = [`<b>감시 중</b> · ${origin} 출발 · 기본 성인 ${cfg.passengers || 1}명`, ""];
+    const gl = filterLabel(cfg, {});
+    const lines = [`<b>감시 중</b> · ${origin} 출발 · 기본 성인 ${cfg.passengers || 1}명${gl ? ` · ${gl}` : ""}`, ""];
     for (const d of cfg.destinations) {
       lines.push(describe(cfg, d));
       const best = d.__best; // withHistory 에서 채워 줘요
@@ -342,6 +352,37 @@ const HANDLERS = {
     }
     cfg.origin = code;
     return { reply: `출발 공항을 ${code}로 바꿨어요. 역대 최저가 기록은 공항별로 따로 쌓여요.`, changed: true, commit: `출발지 ${code}` };
+  },
+  airlines(cfg, args) {
+    // /항공사 저가제외 | KE,OZ | -7C,-LJ | 전부   (앞에 여행지 이름을 붙이면 그 여행지만)
+    let target = cfg, label = "기본";
+    let spec = args;
+    if (args.length >= 2 || (args.length === 1 && cfg.destinations.some((d) => d.name === args[0]))) {
+      target = findDest(cfg, args[0]); label = target.name; spec = args.slice(1);
+    }
+    if (!spec.length) throw new CommandError("이렇게 보내 주세요: /항공사 저가제외  /항공사 KE,OZ  /항공사 -7C,-LJ  /항공사 전부");
+    const word = spec.join(",").replace(/\s+/g, "");
+    const commit = `${label} 항공사 필터`;
+    if (["전부", "해제", "all", "any", "없음"].includes(word)) {
+      delete target.airlines; delete target.exclude_airlines;
+      return { reply: `${label} 항공사 필터를 해제했어요. 모든 항공사를 봐요.`, changed: true, commit };
+    }
+    if (["저가제외", "저가항공제외", "대형만", "수하물포함", "nolcc", "fsc"].includes(word.toLowerCase())) {
+      delete target.airlines; target.exclude_airlines = [...LCC];
+      return { reply: `${label}: 저가항공사를 빼고 봐요. 남는 대형항공사 요금은 보통 위탁수하물이 포함이에요.\n(제외: ${LCC.join(", ")})`, changed: true, commit };
+    }
+    const codes = word.split(",").filter(Boolean);
+    const bad = codes.filter((c) => !/^-?[A-Z0-9]{2}$/i.test(c));
+    if (bad.length) throw new CommandError(`항공사 코드는 영문·숫자 2글자예요: ${bad.join(", ")}\n예: KE(대한항공) OZ(아시아나) 7C(제주) LJ(진에어) TW(티웨이) JL(JAL) NH(ANA)`);
+    const excl = codes.filter((c) => c.startsWith("-")).map((c) => c.slice(1).toUpperCase());
+    const incl = codes.filter((c) => !c.startsWith("-")).map((c) => c.toUpperCase());
+    if (incl.length && excl.length) throw new CommandError("포함(KE,OZ)과 제외(-7C)를 섞어 쓸 수는 없어요. 둘 중 하나만.");
+    if (incl.length) {
+      target.airlines = [...new Set(incl)]; delete target.exclude_airlines;
+      return { reply: `${label}: ${target.airlines.join(", ")} 항공편만 봐요.`, changed: true, commit };
+    }
+    target.exclude_airlines = [...new Set(excl)]; delete target.airlines;
+    return { reply: `${label}: ${target.exclude_airlines.join(", ")} 항공편은 빼고 봐요.`, changed: true, commit };
   },
   pax(cfg, args) {
     if (args.length === 1) {
@@ -456,6 +497,14 @@ const fmtWeekdays = (wd) => (!wd || !wd.length ? "매일" : wd.map((w) => WD_EN2
 const won = (n, cur = "KRW") => (cur === "KRW" ? `${Number(n).toLocaleString("en-US")}원` : `${Number(n).toLocaleString("en-US")} ${cur}`);
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+function filterLabel(cfg, d) {
+  const incl = "airlines" in d ? d.airlines : cfg.airlines;
+  const excl = "exclude_airlines" in d ? d.exclude_airlines : cfg.exclude_airlines;
+  if (incl && incl.length) return incl.join(",") + "만";
+  if (excl && excl.length) return excl.length >= 8 ? "저가항공 제외" : excl.join(",") + " 제외";
+  return "";
+}
+
 function describe(cfg, d) {
   const when = d.dates
     ? d.dates.map(([a, b]) => `${a}~${b}`).join(", ")
@@ -463,7 +512,8 @@ function describe(cfg, d) {
   const pax = Number(d.passengers || cfg.passengers || 1);
   const below = d.alert_below ? won(d.alert_below, cfg.currency) + (pax > 1 ? " (1인)" : "") : "없음";
   const who = d.passengers ? ` · 성인 ${pax}명` : "";
-  return `<b>${esc(d.name)}</b> (${d.airports.join(", ")})${who}\n  ${when}\n  기준가 ${below}`;
+  const fl = filterLabel(cfg, d);
+  return `<b>${esc(d.name)}</b> (${d.airports.join(", ")})${who}${fl ? ` · ${fl}` : ""}\n  ${when}\n  기준가 ${below}`;
 }
 
 // ---------------------------------------------------------------------------
