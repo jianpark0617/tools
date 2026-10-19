@@ -3,7 +3,7 @@
   "origin": "ICN",
   "currency": "KRW",
   "language": "ko",
-  "passengers": 1,
+  "passengers": 2,
   "seat": "economy",
   "max_stops": 0,
   "request_interval_seconds": 2,
@@ -11,20 +11,37 @@
   "destinations": [
     {
       "name": "도쿄",
-      "airports": ["NRT", "HND"],
+      "airports": [
+        "NRT",
+        "HND"
+      ],
       "depart_from": "2026-12-01",
       "depart_to": "2027-02-28",
-      "depart_weekdays": ["fri", "sat"],
-      "nights": [3, 4],
+      "depart_weekdays": [
+        "fri",
+        "sat"
+      ],
+      "nights": [
+        3,
+        4
+      ],
       "alert_below": 300000
     },
     {
       "name": "오사카",
-      "airports": ["KIX"],
+      "airports": [
+        "KIX"
+      ],
       "depart_from": "2026-12-01",
       "depart_to": "2027-02-28",
-      "depart_weekdays": ["fri", "sat"],
-      "nights": [3, 4],
+      "depart_weekdays": [
+        "fri",
+        "sat"
+      ],
+      "nights": [
+        3,
+        4
+      ],
       "alert_below": 250000
     }
   ]
