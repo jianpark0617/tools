@@ -14,6 +14,7 @@ on:
           - alert      # 평소처럼: 조건에 맞을 때만 알림
           - summary    # 조건과 상관없이 현재 최저가 요약을 보냄
           - dry-run    # 텔레그램으로 보내지 않고 로그에만 출력
+          - quick      # 기록상 싼 날짜 위주로 빠르게 (Cloudflare 타이머가 몇 시간마다 호출)
       only:
         description: "특정 여행지만 (config.json의 name). 비우면 전부"
         required: false
@@ -52,6 +53,7 @@ jobs:
           args=()
           case "$MODE" in
             summary) args+=(--summary) ;;
+            quick)   args+=(--quick) ;;
             dry-run) args+=(--no-send) ;;
           esac
           if [ -n "$ONLY" ]; then args+=(--only "$ONLY"); fi

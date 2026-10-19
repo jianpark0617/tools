@@ -154,6 +154,27 @@ def build_combos(dest: dict, today: date) -> list[Combo]:
     return combos
 
 
+# 빠른 조회: 기록상 가장 쌌던 날짜 몇 개와 아직 안 본 날짜 몇 개만 봐요. 특가가 잠깐 떴다 사라지는 걸
+# 잡으려고 몇 시간마다 돌리는 용도예요. 전체 조회는 하루 한 번 그대로.
+QUICK_KNOWN = 15
+QUICK_NEW = 5
+
+
+def quick_combos(combos: list[Combo], hist: dict) -> list[Combo]:
+    """빠른 조회에 쓸 조합: 기록상 1인 가격이 싼 순 QUICK_KNOWN개 + 기록에 없는 조합 QUICK_NEW개."""
+    by_key = {c.key: c for c in combos}
+    known = [(per_person_of(v), k) for k, v in hist.get("combos", {}).items() if k in by_key]
+    known.sort()
+    picked = [by_key[k] for _, k in known[:QUICK_KNOWN]]
+    seen = {c.key for c in picked}
+    # 기록이 적을수록(처음 며칠) 새 날짜를 더 많이 봐서 총 QUICK_KNOWN + QUICK_NEW 개를 채워요.
+    fresh = [c for c in combos if c.key not in hist.get("combos", {}) and c.key not in seen]
+    picked += fresh[: QUICK_KNOWN + QUICK_NEW - len(picked)]
+    if not picked:
+        picked = combos[: QUICK_KNOWN + QUICK_NEW]
+    return sorted(picked, key=lambda c: (c.depart, c.ret, c.airport))
+
+
 def rotate_combos(combos: list[Combo], cap: int, today: date) -> list[Combo]:
     """조합이 너무 많으면 하루에 cap개씩 돌아가며 조회해요."""
     if cap <= 0 or len(combos) <= cap:
@@ -538,13 +559,11 @@ def send_telegram(text: str, *, no_send: bool = False) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest) -> tuple[list[Offer], dict, Path, int]:
+def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest,
+                      quick: bool = False) -> tuple[list[Offer], dict, Path, int]:
     """여행지 하나를 조회하고 기록을 갱신해요. (가격순 결과, 기록, 기록 경로, 실패 수)"""
     origin = cfg["origin"].upper()
     today = now.date()
-    combos = rotate_combos(
-        build_combos(dest, today), int(cfg.get("max_queries_per_destination", 60)), today
-    )
     interval = float(cfg.get("request_interval_seconds", 2))
     pax = dest_passengers(cfg, dest)
     airlines = airline_filter(cfg, dest)
@@ -552,9 +571,15 @@ def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest
     path = history_path(origin, dest["name"])
     hist = load_history(path)
 
+    all_combos = build_combos(dest, today)
+    if quick:
+        combos = quick_combos(all_combos, hist)
+    else:
+        combos = rotate_combos(all_combos, int(cfg.get("max_queries_per_destination", 60)), today)
+
     offers: list[Offer] = []
     failures = 0
-    print(f"[{dest['name']}] {len(combos)}개 조합 조회 시작 (성인 {pax}명)")
+    print(f"[{dest['name']}] {len(combos)}개 조합 조회 시작 (성인 {pax}명{', 빠른 조회' if quick else ''})")
     for i, combo in enumerate(combos):
         try:
             offer = fetch(cfg, origin, combo, now, pax, airlines)
@@ -581,13 +606,15 @@ def watch_destination(cfg: dict, dest: dict, now: datetime, fetch=fetch_cheapest
         hist["runs"].append({"at": now.isoformat(timespec="minutes"),
                              "min_price": offers[0].price, "passengers": pax,
                              "depart": offers[0].depart, "ret": offers[0].ret,
-                             "airport": offers[0].airport, "queried": len(combos)})
+                             "airport": offers[0].airport, "queried": len(combos),
+                             "quick": quick})
     return offers, hist, path, failures
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="항공권 최저가 감시기")
     ap.add_argument("--summary", action="store_true", help="조건과 상관없이 요약을 보내요")
+    ap.add_argument("--quick", action="store_true", help="기록상 싼 날짜 위주로 빠르게 조회해요")
     ap.add_argument("--no-send", action="store_true", help="텔레그램으로 보내지 않아요")
     ap.add_argument("--only", help="이 이름의 여행지만 조회해요")
     ap.add_argument("--config", type=Path, default=CONFIG_PATH)
@@ -606,7 +633,7 @@ def main(argv: list[str] | None = None) -> int:
     sent = 0
 
     for dest in dests:
-        offers, hist, path, failures = watch_destination(cfg, dest, now)
+        offers, hist, path, failures = watch_destination(cfg, dest, now, quick=args.quick)
         total_failures += failures
         per_dest.append((dest, offers, hist))
 

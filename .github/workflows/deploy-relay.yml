@@ -146,6 +146,10 @@ jobs:
           [observability]
           enabled = true
 
+          # 빠른 조회 타이머 (UTC). 2시간마다 = 한국시간 매 짝수 시 +9h. 바꾸려면 여기만 고쳐요.
+          [triggers]
+          crons = ["0 */2 * * *"]
+
           [[kv_namespaces]]
           binding = "STATE"
           id = "$KV_ID"
