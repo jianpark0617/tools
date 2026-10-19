@@ -44,6 +44,22 @@
         4
       ],
       "alert_below": 250000
+    },
+    {
+      "name": "삿포로",
+      "airports": [
+        "CTS"
+      ],
+      "depart_from": "2026-12-01",
+      "depart_to": "2027-09-01",
+      "depart_weekdays": [
+        "fri",
+        "sat"
+      ],
+      "nights": [
+        3,
+        4
+      ]
     }
   ]
 }
