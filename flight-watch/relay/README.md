@@ -2,7 +2,7 @@
 
 이걸 켜면 봇이 **1~2초 안에** 답장해요. 텔레그램이 메시지를 Cloudflare Worker(무료)로 바로 밀어 넣고(웹훅), Worker가 명령을 해석해 저장소의 `config.json`을 직접 고치고 답장해요. 4분 걸리는 가격 조회(`/summary`, 매일 아침)만 GitHub Actions가 해요.
 
-안 켜면 GitHub Actions가 10분마다(실제로는 몇 시간씩 밀릴 수 있음) 메시지를 확인하는 느린 방식으로 돌아가요.
+안 켜면 텔레그램 명령은 동작하지 않아요. 알림(매일 아침 조회)은 Worker 없이도 와요.
 
 ## 자동 설치 (5분)
 
@@ -49,7 +49,6 @@ https://github.com/jianpark0617/tools/settings/secrets/actions (Fork면 자기 �
 - `/summary`는 GitHub Actions의 "항공권 최저가 감시"를 `summary` 모드로 깨워요.
 - `/reset`은 `flight-watch/history/` 파일을 지워요.
 - 되묻기(인자 없는 명령) 상태는 Cloudflare KV에 1시간 보관돼요.
-- 웹훅이 켜져 있으면 GitHub Actions의 봇(`bot.py`)은 "웹훅 모드"라고만 찍고 아무것도 안 해요. 웹훅을 끄면(텔레그램 `deleteWebhook`) 다시 폴링 모드로 돌아가요.
 
 ## 토큰이 만료되면
 

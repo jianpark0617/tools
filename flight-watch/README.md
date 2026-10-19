@@ -44,7 +44,7 @@ Fork 한 뒤 `/초기화`를 한 번 보내면 원본의 가격 기록이 지워
 
 ## 텔레그램에서 설정 바꾸기
 
-봇에게 명령을 보내면 GitHub Actions가 읽어서 처리하고 답장해요. 기본은 10분마다 확인인데, GitHub의 예약 실행은 붐비면 **몇 시간씩** 밀릴 수 있어요. [`relay/README.md`](relay/README.md)대로 Cloudflare Worker(무료, 5분 설정)를 켜면 **1~2초** 안에 답장해요.
+봇에게 명령을 보내면 Cloudflare Worker가 바로 처리하고 1~2초 안에 답장해요. 설치는 [`relay/README.md`](relay/README.md) (무료, 5분). Worker를 안 켜면 텔레그램 명령은 동작하지 않고, 아래 "여행지 바꾸기 (파일로)"처럼 `config.json`을 직접 고쳐요. 알림은 Worker 없이도 와요.
 
 ```
 /목록                                    감시 중인 여행지와 기준가, 역대 최저가
@@ -126,14 +126,12 @@ Fork 한 뒤 `/초기화`를 한 번 보내면 원본의 가격 기록이 지워
 | 파일 | 역할 |
 |---|---|
 | `watch.py` | 조회 → 알림 판단 → 텔레그램 전송 → 기록 저장 |
-| `bot.py` | 텔레그램 명령을 읽어 `config.json` 수정 |
 | `config.json` | 출발지·여행지·기간·기준가 설정 |
-| `bot_state.json` | 어디까지 읽었는지(텔레그램 update offset)와 봇 번호. 자동 관리 |
 | `SETUP.md` | 친구용 설치 안내 (Fork → 봇 연결) |
 | `history/` | 날짜 조합별 가격과 역대 최저가. 자동 커밋 |
 | `../.github/workflows/flight-watch.yml` | 매일 아침 조회 |
-| `../.github/workflows/flight-bot.yml` | 텔레그램 명령 확인 (10분 예약 + 중계기 신호) |
-| `relay/` | 명령을 1~2초 안에 처리하는 Cloudflare Worker 봇 (선택, 추천) |
+| `relay/` | 텔레그램 명령을 처리하는 Cloudflare Worker 봇 |
+| `../.github/workflows/deploy-relay.yml` | Worker 설치·진단 (수동 실행) |
 
 ## 내 컴퓨터에서 돌리기
 

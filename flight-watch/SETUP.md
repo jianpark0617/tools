@@ -66,9 +66,9 @@
 
 안 오면 Actions에서 그 실행을 눌러 빨간 단계의 로그를 보세요. 대개 토큰이나 채팅 ID 오타예요.
 
-## 7. (선택) 명령 바로바로 처리되게 하기
+## 7. 텔레그램 명령 켜기 (5분)
 
-GitHub 예약 실행이 밀리면 봇 답장이 몇 시간 늦을 수 있어요. 바로 반응하길 원하면 [`relay/README.md`](relay/README.md)대로 Cloudflare Worker(무료)를 10분만 설정하세요. 안 해도 동작은 해요.
+5번의 텔레그램 명령은 Cloudflare Worker(무료)가 처리해요. [`relay/README.md`](relay/README.md)의 자동 설치대로 토큰 두 개만 만들면 돼요. 이걸 건너뛰면 알림은 오지만 명령은 안 되고, 여행지는 `flight-watch/config.json`을 GitHub에서 직접 고쳐야 해요.
 
 ## 자주 묻는 것
 
