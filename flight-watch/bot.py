@@ -445,6 +445,36 @@ def handle_text(cfg: dict, text: str, today: date) -> tuple[str, bool, bool]:
 # ---------------------------------------------------------------------------
 
 
+# 텔레그램에서 "/"를 누르면 나오는 메뉴. 명령 이름은 영문 소문자만 허용돼서(텔레그램 규칙)
+# 영문 별칭을 올리고 설명을 한글로 달아요. 한글 명령(/기준가 등)도 계속 돼요.
+MENU_VERSION = 1
+COMMAND_MENU = [
+    ("list", "감시 중인 여행지와 기준가, 역대 최저가"),
+    ("price", "기준가 바꾸기: /price 도쿄 35만"),
+    ("add", "여행지 추가: /add 방콕 BKK 12-01 2-28 45만"),
+    ("del", "여행지 빼기: /del 방콕"),
+    ("pax", "인원: /pax 2 (여행지만: /pax 도쿄 4)"),
+    ("period", "출발 기간: /period 도쿄 2027-01-01 2027-03-31"),
+    ("nights", "박수: /nights 도쿄 2,3"),
+    ("days", "출발 요일: /days 도쿄 목,금,토 (매일은 전부)"),
+    ("origin", "출발 공항: /origin GMP"),
+    ("summary", "지금 최저가 요약 받기 (3~5분)"),
+    ("reset", "가격 기록 지우기"),
+    ("help", "명령어 안내"),
+]
+
+
+def tg_set_commands(token: str) -> None:
+    data = urllib.parse.urlencode({
+        "commands": json.dumps([{"command": c, "description": d[:256]} for c, d in COMMAND_MENU]),
+    }).encode()
+    req = urllib.request.Request(f"https://api.telegram.org/bot{token}/setMyCommands", data=data, method="POST")
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        body = json.loads(resp.read().decode())
+    if not body.get("ok"):
+        raise RuntimeError(f"setMyCommands 실패: {body}")
+
+
 def tg_get_updates(token: str, offset: int | None) -> list[dict]:
     params = {"timeout": "0", "allowed_updates": json.dumps(["message"])}
     if offset is not None:
@@ -505,6 +535,15 @@ def main() -> int:
         print("봇이 바뀌어서 읽은 위치를 초기화해요.")
         state = {"offset": None, "bot_id": bot_id}
 
+    # "/" 메뉴 등록 (봇마다 한 번, 메뉴가 바뀌면 다시)
+    if state.get("menu_version") != MENU_VERSION:
+        try:
+            tg_set_commands(token)
+            state["menu_version"] = MENU_VERSION
+            print("텔레그램 명령 메뉴 등록")
+        except Exception as e:
+            print(f"명령 메뉴 등록 실패 (다음에 다시 시도): {e}")
+
     updates = tg_get_updates(token, state.get("offset"))
     print(f"새 업데이트 {len(updates)}건")
     changed = False
@@ -531,7 +570,7 @@ def main() -> int:
     if changed:
         save_config(cfg)
         print("config.json 저장")
-    if updates or not STATE_PATH.exists() or load_state().get("bot_id") != bot_id:
+    if state != load_state():
         save_state(state)
     set_output("summary", "true" if want_summary else "false")
     set_output("changed", "true" if changed else "false")
