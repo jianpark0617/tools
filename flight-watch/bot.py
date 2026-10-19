@@ -526,9 +526,19 @@ def tg_get_updates(token: str, offset: int | None) -> list[dict]:
         except urllib.error.HTTPError as e:
             if e.code != 409:
                 raise
+            try:
+                detail = json.loads(e.read().decode()).get("description", "")
+            except Exception:
+                detail = ""
+            if "webhook" in detail.lower():
+                raise WebhookActive(detail)
             last = e
             time.sleep(2 * (attempt + 1))
     raise RuntimeError(f"getUpdates가 계속 409예요: {last}")
+
+
+class WebhookActive(Exception):
+    """텔레그램 웹훅(Cloudflare 중계기)이 켜져 있어요. 그쪽이 명령을 처리하니 여기선 할 일이 없어요."""
 
 
 def load_state() -> dict:
@@ -588,7 +598,13 @@ def main() -> int:
         except Exception as e:
             print(f"명령 메뉴 등록 실패 (다음에 다시 시도): {e}")
 
-    updates = tg_get_updates(token, state.get("offset"))
+    try:
+        updates = tg_get_updates(token, state.get("offset"))
+    except WebhookActive:
+        print("웹훅 모드예요 (Cloudflare 중계기가 명령을 바로 처리해요). 여기선 할 일이 없어요.")
+        set_output("summary", "false")
+        set_output("changed", "false")
+        return 0
     print(f"새 업데이트 {len(updates)}건")
     changed = False
     want_summary = False

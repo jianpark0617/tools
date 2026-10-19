@@ -44,7 +44,7 @@ Fork 한 뒤 `/초기화`를 한 번 보내면 원본의 가격 기록이 지워
 
 ## 텔레그램에서 설정 바꾸기
 
-봇에게 명령을 보내면 GitHub Actions가 읽어서 처리하고 답장해요. 기본은 10분마다 확인인데, GitHub의 예약 실행은 붐비면 **몇 시간씩** 밀릴 수 있어요. 바로바로 반응하게 하려면 [`relay/README.md`](relay/README.md)대로 Cloudflare Worker 중계기(무료, 10분 설정)를 켜세요. 그러면 1~2분 안에 처리돼요.
+봇에게 명령을 보내면 GitHub Actions가 읽어서 처리하고 답장해요. 기본은 10분마다 확인인데, GitHub의 예약 실행은 붐비면 **몇 시간씩** 밀릴 수 있어요. [`relay/README.md`](relay/README.md)대로 Cloudflare Worker(무료, 5분 설정)를 켜면 **1~2초** 안에 답장해요.
 
 ```
 /목록                                    감시 중인 여행지와 기준가, 역대 최저가
@@ -133,7 +133,7 @@ Fork 한 뒤 `/초기화`를 한 번 보내면 원본의 가격 기록이 지워
 | `history/` | 날짜 조합별 가격과 역대 최저가. 자동 커밋 |
 | `../.github/workflows/flight-watch.yml` | 매일 아침 조회 |
 | `../.github/workflows/flight-bot.yml` | 텔레그램 명령 확인 (10분 예약 + 중계기 신호) |
-| `relay/` | 명령을 1~2분 안에 처리하게 하는 Cloudflare Worker 중계기 (선택) |
+| `relay/` | 명령을 1~2초 안에 처리하는 Cloudflare Worker 봇 (선택, 추천) |
 
 ## 내 컴퓨터에서 돌리기
 

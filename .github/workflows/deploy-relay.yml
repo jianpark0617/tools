@@ -69,7 +69,14 @@ jobs:
             echo "::error::RELAY_GITHUB_TOKEN으로 이 저장소의 Actions를 읽을 수 없어요 (HTTP $code). 토큰의 저장소 선택과 Actions 권한(Read and write)을 확인하세요."
             cat /tmp/gh.json; exit 1
           fi
-          echo "GitHub 토큰 OK"
+          code=$(curl -s -o /tmp/gh2.json -w "%{http_code}" \
+            -H "Authorization: Bearer $RELAY_GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/flight-watch/config.json")
+          if [ "$code" != "200" ]; then
+            echo "::error::RELAY_GITHUB_TOKEN에 Contents(저장소 내용) 권한이 없어요 (HTTP $code). 토큰 설정에서 Repository permissions → Contents: Read and write 를 추가하세요. https://github.com/settings/personal-access-tokens"
+            exit 1
+          fi
+          echo "GitHub 토큰 OK (Actions, Contents)"
 
       - name: Cloudflare 계정 찾기
         id: cf
@@ -106,6 +113,23 @@ jobs:
           echo "kv_id=$existing" >> "$GITHUB_OUTPUT"
           echo "KV OK"
 
+      - name: workers.dev 주소 준비
+        id: sub
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+        run: |
+          api="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain"
+          sub=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$api" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log((j.success&&j.result&&j.result.subdomain)||"")})')
+          if [ -z "$sub" ]; then
+            want="fw-$(echo "$CLOUDFLARE_ACCOUNT_ID" | cut -c1-8)"
+            echo "workers.dev 주소가 없어서 만들어요: $want"
+            resp=$(curl -s -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" "$api" -d "{\"subdomain\":\"$want\"}")
+            sub=$(echo "$resp" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log((j.success&&j.result&&j.result.subdomain)||"")})')
+            [ -n "$sub" ] || { echo "::error::workers.dev 주소를 만들지 못했어요. Cloudflare 대시보드 → Workers & Pages 에서 한 번 열어 주소(subdomain)를 등록한 뒤 다시 실행하세요."; echo "$resp"; exit 1; }
+          fi
+          echo "subdomain=$sub" >> "$GITHUB_OUTPUT"
+          echo "Worker 주소: https://$WORKER_NAME.$sub.workers.dev"
+
       - name: Worker 올리기
         if: inputs.mode != 'diagnose'
         env:
@@ -117,13 +141,10 @@ jobs:
           name = "$WORKER_NAME"
           main = "worker.js"
           compatibility_date = "2025-01-01"
-          workers_dev = false
+          workers_dev = true
 
           [observability]
           enabled = true
-
-          [triggers]
-          crons = ["* * * * *"]
 
           [[kv_namespaces]]
           binding = "STATE"
@@ -141,14 +162,39 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SUB: ${{ steps.sub.outputs.subdomain }}
         working-directory: flight-watch/relay
         run: |
+          [ -n "$TELEGRAM_CHAT_ID" ] || { echo "::error::TELEGRAM_CHAT_ID Secret이 필요해요."; exit 1; }
+          WEBHOOK_SECRET=$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 40)
+          echo "::add-mask::$WEBHOOK_SECRET"
           printf '%s' "$TELEGRAM_BOT_TOKEN" | npx wrangler secret put TELEGRAM_BOT_TOKEN
           printf '%s' "$RELAY_GITHUB_TOKEN" | npx wrangler secret put GITHUB_TOKEN
-          if [ -n "$TELEGRAM_CHAT_ID" ]; then
-            printf '%s' "$TELEGRAM_CHAT_ID" | npx wrangler secret put TELEGRAM_CHAT_ID
-          fi
-          echo "설치 완료. 이제 텔레그램 봇에게 /list 를 보내면 1~2분 안에 답장이 와요."
+          printf '%s' "$TELEGRAM_CHAT_ID" | npx wrangler secret put TELEGRAM_CHAT_ID
+          printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put TELEGRAM_WEBHOOK_SECRET
+
+          url="https://$WORKER_NAME.$SUB.workers.dev/telegram"
+          echo "텔레그램 웹훅 등록: $url"
+          resp=$(curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+            -H "Content-Type: application/json" \
+            -d "{\"url\":\"$url\",\"secret_token\":\"$WEBHOOK_SECRET\",\"allowed_updates\":[\"message\"],\"drop_pending_updates\":false}")
+          echo "$resp" | grep -q '"ok":true' || { echo "::error::텔레그램 웹훅 등록 실패"; echo "$resp"; exit 1; }
+
+          # "/" 메뉴 (영문 명령만 허용되는 텔레그램 규칙)
+          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setMyCommands" -H "Content-Type: application/json" -d '{"commands":[
+            {"command":"list","description":"감시 중인 여행지와 기준가, 역대 최저가"},
+            {"command":"price","description":"기준가 바꾸기: /price 도쿄 35만"},
+            {"command":"add","description":"여행지 추가: /add 방콕 BKK 12-01 2-28 45만"},
+            {"command":"del","description":"여행지 빼기: /del 방콕"},
+            {"command":"pax","description":"인원: /pax 2 (여행지만: /pax 도쿄 4)"},
+            {"command":"period","description":"출발 기간: /period 도쿄 2027-01-01 2027-03-31"},
+            {"command":"nights","description":"박수: /nights 도쿄 2,3"},
+            {"command":"days","description":"출발 요일: /days 도쿄 목,금,토 (매일은 전부)"},
+            {"command":"origin","description":"출발 공항: /origin GMP"},
+            {"command":"summary","description":"지금 최저가 요약 받기 (3~5분)"},
+            {"command":"reset","description":"가격 기록 지우기"},
+            {"command":"help","description":"명령어 안내"}]}' >/dev/null
+          echo "설치 완료. 텔레그램 봇에게 /list 를 보내면 1~2초 안에 답장이 와요."
 
       - name: 진단
         if: inputs.mode == 'diagnose'
@@ -159,7 +205,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         working-directory: flight-watch/relay
         run: |
-          echo "### 1) 텔레그램에 아직 봇이 읽지 않은 메시지"
+          echo "### 0) 텔레그램 웹훅 상태 (url이 있고 last_error 가 없어야 정상)"
+          curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getWebhookInfo" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const r=j.result||{};console.log(" url:",r.url||"(없음 → 폴링 모드)");console.log(" 대기:",r.pending_update_count,"last_error:",r.last_error_message||"(없음)",r.last_error_date?new Date(r.last_error_date*1000).toISOString():"")})'
+          echo
+          echo "### 1) 텔레그램에 아직 봇이 읽지 않은 메시지 (웹훅 모드면 409가 정상)"
           curl -s "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getUpdates?timeout=0" \
             | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);if(!j.ok){console.log("오류:",JSON.stringify(j));return}console.log("대기 중:",j.result.length,"건");for(const u of j.result){const m=u.message||{};console.log(" - update_id",u.update_id,"chat",m.chat&&m.chat.id,"내 채팅:",String(m.chat&&m.chat.id)===process.env.TELEGRAM_CHAT_ID,"길이",(m.text||"").length)}})'
           echo
