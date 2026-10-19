@@ -3,6 +3,8 @@ on:
   push:
     branches: [claude/quirky-brahmagupta-xynomy]
     paths: [".github/workflows/flight-debug.yml"]
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -12,22 +14,21 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install -r flight-watch/requirements.txt
       - run: |
-          python - <<'PY'
+          mkdir -p dump && python - <<'PY'
           import sys, time
           sys.path.insert(0, "flight-watch")
           from fast_flights import FlightQuery, Passengers, create_query, fetch_flights_html
-          from watch import parse_offers
-          for route, dep, ret in (("KIX", "2026-12-19", "2026-12-22"), ("NRT", "2027-01-15", "2027-01-19"), ("BKK", "2027-01-15", "2027-01-20")):
-              for bags in (0, 1, 2):
-                  q = create_query(flights=[FlightQuery(date=dep, from_airport="ICN", to_airport=route, max_stops=0),
-                                            FlightQuery(date=ret, from_airport=route, to_airport="ICN", max_stops=0)],
-                                   trip="round-trip", passengers=Passengers(adults=1), language="ko", currency="KRW",
-                                   checked_bags=bags)
-                  try:
-                      offers = sorted(parse_offers(fetch_flights_html(q)), key=lambda o: o["price"])
-                      print(f"{route} bags={bags}: n={len(offers)}", [(o['price'], o['airlines'][0], o['legs'][0]['flight']) for o in offers[:6]])
-                  except Exception as e:
-                      print(f"{route} bags={bags}: ERR {e}")
-                  time.sleep(3)
-              print("URL(bags=1):", q.url()[:140])
+          for bags in (0, 1):
+              q = create_query(flights=[FlightQuery(date="2026-12-19", from_airport="ICN", to_airport="KIX", max_stops=0),
+                                        FlightQuery(date="2026-12-22", from_airport="KIX", to_airport="ICN", max_stops=0)],
+                               trip="round-trip", passengers=Passengers(adults=1), language="ko", currency="KRW", checked_bags=bags)
+              for attempt in range(4):
+                  html = fetch_flights_html(q)
+                  if "errorHasStatus: true" not in html: break
+                  time.sleep(5)
+              open(f"dump/bags{bags}.html", "w").write(html)
+              print(bags, len(html))
+              time.sleep(3)
           PY
+          cd dump && git init -q && git checkout -q -b tmp-dump && git config user.name bot && git config user.email bot@example.com
+          git add . && git commit -qm dump && git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" tmp-dump
