@@ -223,6 +223,16 @@
    "airport": "NRT",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-10-20T21:00+09:00",
+   "min_price": 675410,
+   "passengers": 2,
+   "depart": "2027-01-15",
+   "ret": "2027-01-19",
+   "airport": "NRT",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -290,9 +300,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTUoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTkoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-15|2027-01-19|NRT": {
-   "price": 675498,
+   "price": 675410,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -308,9 +318,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTYoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTkoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-16|2027-01-19|NRT": {
-   "price": 694698,
+   "price": 694610,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -326,9 +336,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTYoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjAoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-16|2027-01-20|NRT": {
-   "price": 712506,
+   "price": 712412,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -344,11 +354,11 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjUoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-22|2027-01-25|NRT": {
-   "price": 724388,
+   "price": 711484,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
-    "ZIPAIR Tokyo"
+    "피치항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDTlJUGhwSCjIwMjctMDEtMjUoAGoFEgNOUlRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
@@ -362,11 +372,11 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjYoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-22|2027-01-26|NRT": {
-   "price": 707586,
+   "price": 694688,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
-    "ZIPAIR Tokyo"
+    "피치항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDTlJUGhwSCjIwMjctMDEtMjYoAGoFEgNOUlRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
@@ -380,9 +390,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjMoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjYoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-23|2027-01-26|NRT": {
-   "price": 707586,
+   "price": 707488,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -416,9 +426,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjkoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMDEoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-29|2027-02-01|NRT": {
-   "price": 716460,
+   "price": 716350,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -434,9 +444,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjkoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMDIoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-29|2027-02-02|NRT": {
-   "price": 699660,
+   "price": 699554,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -452,9 +462,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMzAoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMDIoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-30|2027-02-02|NRT": {
-   "price": 724860,
+   "price": 724754,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -578,9 +588,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDItMTIoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMTYoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-02-12|2027-02-16|NRT": {
-   "price": 729900,
+   "price": 729792,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -758,9 +768,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDItMjcoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDMtMDMoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-02-27|2027-03-03|NRT": {
-   "price": 728298,
+   "price": 728200,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -1118,11 +1128,11 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMDIoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMDYoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-02|2027-01-06|NRT": {
-   "price": 626400,
+   "price": 883600,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
-    "에티오피아항공"
+    "피치항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMDIoAGoFEgNJQ05yBRIDTlJUGhwSCjIwMjctMDEtMDYoAGoFEgNOUlRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
@@ -1136,9 +1146,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMDgoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTEoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-08|2027-01-11|NRT": {
-   "price": 704064,
+   "price": 703984,
    "passengers": 2,
-   "at": "2026-10-20T19:00+09:00",
+   "at": "2026-10-20T21:00+09:00",
    "airlines": [
     "Trinity Airways"
    ],
