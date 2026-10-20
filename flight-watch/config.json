@@ -15,8 +15,8 @@
         "NRT",
         "HND"
       ],
-      "depart_from": "2026-12-01",
-      "depart_to": "2027-02-28",
+      "depart_from": "2027-01-01",
+      "depart_to": "2027-03-01",
       "depart_weekdays": [
         "fri",
         "sat"
