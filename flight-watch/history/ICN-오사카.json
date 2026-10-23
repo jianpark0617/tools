@@ -543,13 +543,23 @@
    "airport": "KIX",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-10-23T09:00+09:00",
+   "min_price": 250600,
+   "passengers": 1,
+   "depart": "2026-12-12",
+   "ret": "2026-12-16",
+   "airport": "KIX",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
   "2026-12-04|2026-12-07|KIX": {
    "price": 285600,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -558,7 +568,7 @@
   "2026-12-04|2026-12-08|KIX": {
    "price": 265600,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -567,7 +577,7 @@
   "2026-12-05|2026-12-08|KIX": {
    "price": 264900,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -576,7 +586,7 @@
   "2026-12-05|2026-12-09|KIX": {
    "price": 264700,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -585,7 +595,7 @@
   "2026-12-11|2026-12-14|KIX": {
    "price": 274900,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -594,7 +604,7 @@
   "2026-12-11|2026-12-15|KIX": {
    "price": 274900,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -603,7 +613,7 @@
   "2026-12-12|2026-12-15|KIX": {
    "price": 260600,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -612,7 +622,7 @@
   "2026-12-12|2026-12-16|KIX": {
    "price": 250600,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -621,7 +631,7 @@
   "2026-12-18|2026-12-21|KIX": {
    "price": 288900,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -630,7 +640,7 @@
   "2026-12-18|2026-12-22|KIX": {
    "price": 275600,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -639,7 +649,7 @@
   "2026-12-19|2026-12-22|KIX": {
    "price": 294700,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -817,18 +827,18 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjctMDEtMjYoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-01-23|2027-01-26|KIX": {
-   "price": 273611,
+   "price": 273733,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "피치항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjMoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjctMDEtMjYoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-01-23|2027-01-27|KIX": {
-   "price": 282918,
+   "price": 283047,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -853,18 +863,18 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjkoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjctMDItMDIoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-01-30|2027-02-02|KIX": {
-   "price": 273611,
+   "price": 273733,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "피치항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMzAoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjctMDItMDIoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-01-30|2027-02-03|KIX": {
-   "price": 273611,
+   "price": 273733,
    "passengers": 1,
-   "at": "2026-10-23T07:00+09:00",
+   "at": "2026-10-23T09:00+09:00",
    "airlines": [
     "피치항공"
    ],
