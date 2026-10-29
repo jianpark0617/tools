@@ -1426,6 +1426,16 @@
    "airport": "CTS",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-10-30T07:00+09:00",
+   "min_price": 399900,
+   "passengers": 1,
+   "depart": "2027-03-13",
+   "ret": "2027-03-16",
+   "airport": "CTS",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -1448,18 +1458,18 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjYtMTItMDQoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjYtMTItMDgoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2026-12-05|2026-12-08|CTS": {
-   "price": 483325,
+   "price": 483726,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "에어프레미아"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjYtMTItMDUoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjYtMTItMDgoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2026-12-05|2026-12-09|CTS": {
-   "price": 430723,
+   "price": 431037,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "에어프레미아"
    ],
@@ -1891,7 +1901,7 @@
   "2027-03-05|2027-03-09|CTS": {
    "price": 414000,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -1909,7 +1919,7 @@
   "2027-03-06|2027-03-10|CTS": {
    "price": 449000,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -1918,25 +1928,25 @@
   "2027-03-12|2027-03-15|CTS": {
    "price": 424000,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDMtMTIoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjctMDMtMTUoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-03-12|2027-03-16|CTS": {
-   "price": 405580,
+   "price": 405937,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDMtMTIoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjctMDMtMTYoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-03-13|2027-03-16|CTS": {
-   "price": 419900,
+   "price": 399900,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -1945,7 +1955,7 @@
   "2027-03-13|2027-03-17|CTS": {
    "price": 409900,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -1954,7 +1964,7 @@
   "2027-03-19|2027-03-22|CTS": {
    "price": 414000,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -1963,7 +1973,7 @@
   "2027-03-19|2027-03-23|CTS": {
    "price": 414000,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -1972,7 +1982,7 @@
   "2027-03-20|2027-03-23|CTS": {
    "price": 414000,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -1981,7 +1991,7 @@
   "2027-03-20|2027-03-24|CTS": {
    "price": 414000,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -1999,7 +2009,7 @@
   "2027-03-26|2027-03-30|CTS": {
    "price": 482200,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -2008,7 +2018,7 @@
   "2027-03-27|2027-03-30|CTS": {
    "price": 482200,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -2017,7 +2027,7 @@
   "2027-03-27|2027-03-31|CTS": {
    "price": 482200,
    "passengers": 1,
-   "at": "2026-10-30T05:00+09:00",
+   "at": "2026-10-30T07:00+09:00",
    "airlines": [
     "대한항공"
    ],
