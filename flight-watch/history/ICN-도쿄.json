@@ -1473,6 +1473,16 @@
    "airport": "NRT",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-10-30T13:00+09:00",
+   "min_price": 628000,
+   "passengers": 2,
+   "depart": "2027-02-27",
+   "ret": "2027-03-03",
+   "airport": "NRT",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -1486,9 +1496,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMDkoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTIoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-09|2027-01-12|NRT": {
-   "price": 703454,
+   "price": 702628,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -1504,9 +1514,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMDkoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTMoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-09|2027-01-13|NRT": {
-   "price": 676878,
+   "price": 676126,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -1522,9 +1532,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTUoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTgoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-15|2027-01-18|NRT": {
-   "price": 697956,
+   "price": 696992,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -1540,9 +1550,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTUoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTkoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-15|2027-01-19|NRT": {
-   "price": 738844,
+   "price": 711432,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -1576,11 +1586,11 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTYoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjAoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-16|2027-01-20|NRT": {
-   "price": 714498,
+   "price": 703412,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
-    "에어부산"
+    "에어프레미아"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTYoAGoFEgNJQ05yBRIDTlJUGhwSCjIwMjctMDEtMjAoAGoFEgNOUlRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
@@ -1594,11 +1604,11 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjUoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-22|2027-01-25|NRT": {
-   "price": 735956,
+   "price": 730592,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
-    "ZIPAIR Tokyo"
+    "에어프레미아"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDTlJUGhwSCjIwMjctMDEtMjUoAGoFEgNOUlRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
@@ -1630,9 +1640,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjMoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjYoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-23|2027-01-26|NRT": {
-   "price": 729474,
+   "price": 728418,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -1648,9 +1658,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjMoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMjcoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-23|2027-01-27|NRT": {
-   "price": 738844,
+   "price": 737762,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -1684,9 +1694,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjkoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMDIoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-29|2027-02-02|NRT": {
-   "price": 738844,
+   "price": 737762,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -1702,9 +1712,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMzAoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMDIoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-30|2027-02-02|NRT": {
-   "price": 678244,
+   "price": 677162,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -1720,9 +1730,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMzAoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMDMoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-30|2027-02-03|NRT": {
-   "price": 637356,
+   "price": 636392,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -1828,9 +1838,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDItMTIoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMTYoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-02-12|2027-02-16|NRT": {
-   "price": 748044,
+   "price": 746936,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -1900,9 +1910,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDItMTkoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDItMjMoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-02-19|2027-02-23|NRT": {
-   "price": 748044,
+   "price": 746936,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
@@ -2010,7 +2020,7 @@
   "2027-02-27|2027-03-03|NRT": {
    "price": 628000,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "에티오피아항공"
    ],
@@ -2404,9 +2414,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMDgoAGoFEgNJQ05yBRIDSE5EGhwSCjIwMjctMDEtMTIoAGoFEgNITkRyBRIDSUNOQgIBAUgBmAEB&hl=ko&curr=KRW"
   },
   "2027-01-08|2027-01-12|NRT": {
-   "price": 726254,
+   "price": 725428,
    "passengers": 2,
-   "at": "2026-10-30T11:00+09:00",
+   "at": "2026-10-30T13:00+09:00",
    "airlines": [
     "ZIPAIR Tokyo"
    ],
