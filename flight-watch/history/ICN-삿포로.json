@@ -2806,6 +2806,16 @@
    "airport": "CTS",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-11-10T03:00+09:00",
+   "min_price": 421600,
+   "passengers": 1,
+   "depart": "2027-03-13",
+   "ret": "2027-03-17",
+   "airport": "CTS",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -3307,7 +3317,7 @@
   "2027-03-12|2027-03-16|CTS": {
    "price": 453800,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -3316,7 +3326,7 @@
   "2027-03-13|2027-03-16|CTS": {
    "price": 453800,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -3325,7 +3335,7 @@
   "2027-03-13|2027-03-17|CTS": {
    "price": 421600,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -3334,7 +3344,7 @@
   "2027-03-19|2027-03-22|CTS": {
    "price": 438800,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -3343,7 +3353,7 @@
   "2027-03-19|2027-03-23|CTS": {
    "price": 438800,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -3352,7 +3362,7 @@
   "2027-03-20|2027-03-23|CTS": {
    "price": 438800,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -3361,7 +3371,7 @@
   "2027-03-20|2027-03-24|CTS": {
    "price": 438800,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -3379,7 +3389,7 @@
   "2027-03-26|2027-03-30|CTS": {
    "price": 443400,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -3388,7 +3398,7 @@
   "2027-03-27|2027-03-30|CTS": {
    "price": 473400,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -3397,7 +3407,7 @@
   "2027-03-27|2027-03-31|CTS": {
    "price": 473400,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -3406,7 +3416,7 @@
   "2027-04-02|2027-04-05|CTS": {
    "price": 473400,
    "passengers": 1,
-   "at": "2026-11-10T01:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -3467,9 +3477,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDQtMTAoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjctMDQtMTMoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-04-10|2027-04-14|CTS": {
-   "price": 473000,
+   "price": 473400,
    "passengers": 1,
-   "at": "2026-11-09T15:00+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -3485,27 +3495,27 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDQtMTYoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjctMDQtMTkoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-04-16|2027-04-20|CTS": {
-   "price": 473000,
+   "price": 473400,
    "passengers": 1,
-   "at": "2026-11-07T14:54+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDQtMTYoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjctMDQtMjAoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-04-17|2027-04-20|CTS": {
-   "price": 473000,
+   "price": 473400,
    "passengers": 1,
-   "at": "2026-11-07T14:54+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDQtMTcoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjctMDQtMjAoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-04-17|2027-04-21|CTS": {
-   "price": 473000,
+   "price": 473400,
    "passengers": 1,
-   "at": "2026-11-07T14:54+09:00",
+   "at": "2026-11-10T03:00+09:00",
    "airlines": [
     "대한항공"
    ],
