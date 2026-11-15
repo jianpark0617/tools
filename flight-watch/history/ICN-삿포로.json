@@ -3546,6 +3546,16 @@
    "airport": "CTS",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-11-15T19:00+09:00",
+   "min_price": 417200,
+   "passengers": 1,
+   "depart": "2027-03-13",
+   "ret": "2027-03-17",
+   "airport": "CTS",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -3577,9 +3587,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjYtMTItMDUoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjYtMTItMDgoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2026-12-05|2026-12-09|CTS": {
-   "price": 417200,
+   "price": 462200,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -3649,9 +3659,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjYtMTItMTkoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjYtMTItMjIoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2026-12-19|2026-12-23|CTS": {
-   "price": 485045,
+   "price": 600965,
    "passengers": 1,
-   "at": "2026-11-15T15:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4009,9 +4019,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDMtMDUoAGoFEgNJQ05yBRIDQ1RTGhwSCjIwMjctMDMtMDgoAGoFEgNDVFNyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-03-05|2027-03-09|CTS": {
-   "price": 465412,
+   "price": 471700,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -4038,7 +4048,7 @@
   "2027-03-12|2027-03-15|CTS": {
    "price": 473900,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4047,7 +4057,7 @@
   "2027-03-12|2027-03-16|CTS": {
    "price": 458900,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4056,7 +4066,7 @@
   "2027-03-13|2027-03-16|CTS": {
    "price": 464312,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -4065,7 +4075,7 @@
   "2027-03-13|2027-03-17|CTS": {
    "price": 417200,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -4074,7 +4084,7 @@
   "2027-03-19|2027-03-22|CTS": {
    "price": 433900,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4083,7 +4093,7 @@
   "2027-03-19|2027-03-23|CTS": {
    "price": 433900,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4092,7 +4102,7 @@
   "2027-03-20|2027-03-23|CTS": {
    "price": 433900,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4101,7 +4111,7 @@
   "2027-03-20|2027-03-24|CTS": {
    "price": 433900,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4137,7 +4147,7 @@
   "2027-03-27|2027-03-31|CTS": {
    "price": 441700,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -4173,7 +4183,7 @@
   "2027-04-03|2027-04-07|CTS": {
    "price": 471700,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -4209,7 +4219,7 @@
   "2027-04-10|2027-04-14|CTS": {
    "price": 471700,
    "passengers": 1,
-   "at": "2026-11-15T15:23+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "대한항공"
    ],
@@ -4245,7 +4255,7 @@
   "2027-04-17|2027-04-21|CTS": {
    "price": 471700,
    "passengers": 1,
-   "at": "2026-11-15T17:00+09:00",
+   "at": "2026-11-15T19:00+09:00",
    "airlines": [
     "대한항공"
    ],
