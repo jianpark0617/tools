@@ -3963,6 +3963,16 @@
    "airport": "KIX",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-11-18T23:00+09:00",
+   "min_price": 320920,
+   "passengers": 1,
+   "depart": "2026-12-19",
+   "ret": "2026-12-23",
+   "airport": "KIX",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -4014,7 +4024,7 @@
   "2026-12-11|2026-12-15|KIX": {
    "price": 322700,
    "passengers": 1,
-   "at": "2026-11-18T19:00+09:00",
+   "at": "2026-11-18T23:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -4066,9 +4076,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjYtMTItMTkoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjYtMTItMjIoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2026-12-19|2026-12-23|KIX": {
-   "price": 320996,
+   "price": 320920,
    "passengers": 1,
-   "at": "2026-11-18T21:00+09:00",
+   "at": "2026-11-18T23:00+09:00",
    "airlines": [
     "피치항공"
    ],
