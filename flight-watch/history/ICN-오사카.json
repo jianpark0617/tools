@@ -20,16 +20,6 @@
  },
  "runs": [
   {
-   "at": "2026-10-21T17:00+09:00",
-   "min_price": 250500,
-   "passengers": 1,
-   "depart": "2026-12-12",
-   "ret": "2026-12-16",
-   "airport": "KIX",
-   "queried": 15,
-   "quick": true
-  },
-  {
    "at": "2026-10-21T19:00+09:00",
    "min_price": 250500,
    "passengers": 1,
@@ -4018,6 +4008,16 @@
    "airport": "KIX",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-11-22T01:00+09:00",
+   "min_price": 297626,
+   "passengers": 1,
+   "depart": "2026-12-19",
+   "ret": "2026-12-22",
+   "airport": "KIX",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -4051,7 +4051,7 @@
   "2026-12-05|2026-12-09|KIX": {
    "price": 303343,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4087,7 +4087,7 @@
   "2026-12-12|2026-12-16|KIX": {
    "price": 325500,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4114,7 +4114,7 @@
   "2026-12-19|2026-12-22|KIX": {
    "price": 297626,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4123,7 +4123,7 @@
   "2026-12-19|2026-12-23|KIX": {
    "price": 326493,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4231,7 +4231,7 @@
   "2027-01-09|2027-01-13|KIX": {
    "price": 313935,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "Trinity Airways"
    ],
@@ -4247,18 +4247,18 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTUoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjctMDEtMTgoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-01-15|2027-01-19|KIX": {
-   "price": 313879,
+   "price": 316079,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
-    "Trinity Airways"
+    "피치항공"
    ],
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMTUoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjctMDEtMTkoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-01-16|2027-01-19|KIX": {
    "price": 328879,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "Trinity Airways"
    ],
@@ -4267,7 +4267,7 @@
   "2027-01-16|2027-01-20|KIX": {
    "price": 324900,
    "passengers": 1,
-   "at": "2026-11-21T21:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "제주항공"
    ],
@@ -4283,9 +4283,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjctMDEtMjIoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjctMDEtMjUoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2027-01-22|2027-01-26|KIX": {
-   "price": 328200,
+   "price": 328700,
    "passengers": 1,
-   "at": "2026-11-21T21:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -4294,7 +4294,7 @@
   "2027-01-23|2027-01-26|KIX": {
    "price": 316814,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4303,7 +4303,7 @@
   "2027-01-23|2027-01-27|KIX": {
    "price": 297626,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4321,7 +4321,7 @@
   "2027-01-29|2027-02-02|KIX": {
    "price": 314607,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4330,7 +4330,7 @@
   "2027-01-30|2027-02-02|KIX": {
    "price": 325500,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "진에어"
    ],
@@ -4339,7 +4339,7 @@
   "2027-01-30|2027-02-03|KIX": {
    "price": 303635,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "에어서울"
    ],
@@ -4384,7 +4384,7 @@
   "2027-02-12|2027-02-15|KIX": {
    "price": 329663,
    "passengers": 1,
-   "at": "2026-11-21T23:00+09:00",
+   "at": "2026-11-22T01:00+09:00",
    "airlines": [
     "피치항공"
    ],
