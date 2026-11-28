@@ -20,16 +20,6 @@
  },
  "runs": [
   {
-   "at": "2026-10-27T15:00+09:00",
-   "min_price": 255200,
-   "passengers": 1,
-   "depart": "2026-12-05",
-   "ret": "2026-12-09",
-   "airport": "KIX",
-   "queried": 15,
-   "quick": true
-  },
-  {
    "at": "2026-10-27T17:00+09:00",
    "min_price": 255200,
    "passengers": 1,
@@ -4018,6 +4008,16 @@
    "airport": "KIX",
    "queried": 15,
    "quick": true
+  },
+  {
+   "at": "2026-11-28T11:00+09:00",
+   "min_price": 301095,
+   "passengers": 1,
+   "depart": "2026-12-05",
+   "ret": "2026-12-09",
+   "airport": "KIX",
+   "queried": 15,
+   "quick": true
   }
  ],
  "combos": {
@@ -4042,7 +4042,7 @@
   "2026-12-05|2026-12-08|KIX": {
    "price": 317810,
    "passengers": 1,
-   "at": "2026-11-28T09:00+09:00",
+   "at": "2026-11-28T11:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4051,7 +4051,7 @@
   "2026-12-05|2026-12-09|KIX": {
    "price": 301095,
    "passengers": 1,
-   "at": "2026-11-28T09:00+09:00",
+   "at": "2026-11-28T11:00+09:00",
    "airlines": [
     "피치항공"
    ],
@@ -4085,9 +4085,9 @@
    "url": "https://www.google.com/travel/flights/search?tfs=GhwSCjIwMjYtMTItMTIoAGoFEgNJQ05yBRIDS0lYGhwSCjIwMjYtMTItMTUoAGoFEgNLSVhyBRIDSUNOQgEBSAGYAQE=&hl=ko&curr=KRW"
   },
   "2026-12-12|2026-12-16|KIX": {
-   "price": 327000,
+   "price": 337000,
    "passengers": 1,
-   "at": "2026-11-28T09:00+09:00",
+   "at": "2026-11-28T11:00+09:00",
    "airlines": [
     "진에어"
    ],
